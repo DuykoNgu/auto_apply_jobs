@@ -134,7 +134,7 @@ flowchart TB
 
 **Role scope.** Mỗi trang level 2 khai báo vai trò được xem (xem [Page permissions](#page-permissions)). Trang không được phép không hiển thị trên sidebar; truy cập trực tiếp trả về 403. Truy cập dữ liệu của người dùng khác trả về 404 để không lộ sự tồn tại của dữ liệu (BR-001).
 
-Routes: `/login` `/register` `/dashboard` `/cv` `/cv/upload` `/cv/new` `/cv/:id` `/insights` `/jobs` `/jobs/:id` `/jobs/:id/cv` `/applications` `/applications/:id` `/auto-apply` `/account` `/admin/sources` `/admin/users` `/admin/ai` `/403` `/404`.
+Routes: `/login` `/register` `/dashboard` `/cv` `/cv/upload` `/cv/new` `/cv/:id` `/insights` `/jobs` `/jobs/:id` `/jobs/:id/cv` `/jobs/:id/preview` `/applications` `/applications/:id` `/auto-apply` `/account` `/admin/sources` `/admin/users` `/admin/ai` `/403` `/404`.
 
 Form thêm/sửa người dùng và nguồn job mở dạng **modal** trên trang danh sách. Thông báo mở dạng panel từ topbar, không phải trang riêng.
 

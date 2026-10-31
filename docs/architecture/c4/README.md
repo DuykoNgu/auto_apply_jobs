@@ -20,7 +20,7 @@ flowchart LR
 | C1 | [System Context](01-system-context.md) | Ứng viên, Admin, nhà tuyển dụng, nguồn job, nhà cung cấp email, LLM provider |
 | C2 | [Container](02-container.md) | Web Frontend, Backend API, Automation Worker, PostgreSQL, File Storage |
 | C3 | [Component](03-component.md) | Thành phần bên trong Backend API, Automation Worker và AI package `acaj_ai` |
-| C4 | Code (phần 6, chưa viết) | Lớp Python cho Matching và Tối ưu CV |
+| C4 | [Code — two core features](04-code.md) | Lớp Python cho Matching và Tối ưu CV cho từng job |
 
 Luồng AI từ đầu vào đến đầu ra, dữ liệu AI dùng và lý do không dùng knowledge graph nằm ở [AI Pipeline and Data for AI](../ai-pipeline.md).
 

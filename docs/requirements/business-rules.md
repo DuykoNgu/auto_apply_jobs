@@ -44,7 +44,7 @@ Mỗi luật nêu nguồn gốc và nơi áp dụng (tên thành phần dự ki�
 
 ### BR-007 — Matching score
 - **Source:** F04.3
-- **Rule:** Mỗi yếu tố là một giá trị trong [0, 1]: kỹ năng theo phả hệ, độ tương đồng ngữ nghĩa CV–JD (embedding), kinh nghiệm/cấp độ, địa điểm/hình thức. `score = round(100 × Σ(weightᵢ × factorᵢ) / Σ weightᵢ)`, trọng số ban đầu 40/20/25/15 (*configurable*). Nếu yếu tố kỹ năng bằng 0, điểm bị chặn ở 39. Khả năng đậu phỏng vấn là chỉ số chính hiển thị và sắp xếp job: `HIGH` ≥ 75, `MEDIUM` ≥ 50, còn lại `LOW`; khi có đủ kết quả ứng tuyển thật, ngưỡng được hiệu chỉnh theo BR-024. Mỗi job hiển thị giá trị từng yếu tố. Công thức chi tiết ở phần thuật toán.
+- **Rule:** Mỗi yếu tố là một giá trị trong [0, 1]: kỹ năng theo phả hệ, độ tương đồng ngữ nghĩa CV–JD (embedding), kinh nghiệm/cấp độ, địa điểm/hình thức. `score = round(100 × Σ(weightᵢ × factorᵢ) / Σ weightᵢ)`, trọng số ban đầu 40/20/25/15 (*configurable*). Nếu yếu tố kỹ năng bằng 0, điểm bị chặn ở 39. Khả năng đậu phỏng vấn là chỉ số chính hiển thị và sắp xếp job: `HIGH` ≥ 75, `MEDIUM` ≥ 50, còn lại `LOW`; sau đó **hạ một mức** nếu thiếu một yêu cầu bắt buộc (không có và không suy ra được), và hạ thêm một mức nếu nhóm job có cạnh tranh cao. Khi có đủ kết quả ứng tuyển thật, ngưỡng được hiệu chỉnh theo BR-024. Mỗi job hiển thị giá trị từng yếu tố. Công thức chi tiết: [Algorithms](../09-algorithms.md#3-matching-score).
 - **Enforced in:** `MatchScorer` (hàm thuần, không gọi LLM).
 
 ### BR-008 — Phả hệ kỹ năng

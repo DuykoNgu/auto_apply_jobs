@@ -1,0 +1,1871 @@
+openapi: 3.0.3
+info:
+  title: ACAJ — AI CV Auto Apply Jobs API
+  version: 0.1.0
+  description: |
+    REST contract between the Web Frontend and the Backend API.
+    Derived from the use cases (docs/03-use-cases.md) and the screen inventory (docs/04-information-architecture.md).
+    Every operation lists its allowed roles in `x-roles`; the backend is authoritative.
+    AI work is asynchronous: operations that start it return `202` with a task, and the resource carries an `AiStatus`.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Health
+  - name: Auth
+  - name: Account
+  - name: Mailbox
+  - name: CVs
+  - name: Attachments
+  - name: Market
+  - name: Jobs
+  - name: Tailored CVs
+  - name: Applications
+  - name: Automation
+  - name: Dashboard
+  - name: Feedback
+  - name: Notifications
+  - name: Lookups
+  - name: Admin
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      operationId: getHealth
+      summary: Health check of API, database and worker
+      security: []
+      x-roles: [PUBLIC]
+      responses:
+        '200':
+          description: Healthy
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Health' }
+        '503':
+          description: Degraded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Health' }
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      operationId: register
+      summary: Create a candidate account (UC01)
+      security: []
+      x-roles: [PUBLIC]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterRequest' }
+      responses:
+        '201':
+          description: Account created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Account' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      operationId: login
+      summary: Log in (UC02)
+      security: []
+      x-roles: [PUBLIC]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Logged in
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logout
+      summary: Log out (UC02)
+      x-roles: [CANDIDATE, ADMIN]
+      responses:
+        '204': { description: Logged out }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /account:
+    get:
+      tags: [Account]
+      operationId: getAccount
+      summary: Own account (SCR-50)
+      x-roles: [CANDIDATE, ADMIN]
+      responses:
+        '200':
+          description: Account
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Account' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    put:
+      tags: [Account]
+      operationId: updateAccount
+      summary: Update name and language; the role cannot be changed here
+      x-roles: [CANDIDATE, ADMIN]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AccountUpdate' }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Account' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    delete:
+      tags: [Account]
+      operationId: deleteAccount
+      summary: Delete the account; all personal data is purged within 30 days (BR-023)
+      x-roles: [CANDIDATE]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PasswordConfirm' }
+      responses:
+        '202':
+          description: Deletion scheduled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskAccepted' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /account/password:
+    post:
+      tags: [Account]
+      operationId: changePassword
+      summary: Change own password
+      x-roles: [CANDIDATE, ADMIN]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PasswordChange' }
+      responses:
+        '204': { description: Password changed }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /account/mailbox:
+    get:
+      tags: [Mailbox]
+      operationId: getMailbox
+      summary: Connected mailbox, if any
+      x-roles: [CANDIDATE]
+      responses:
+        '200':
+          description: Mailbox connection
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MailboxConnection' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Mailbox]
+      operationId: disconnectMailbox
+      summary: Disconnect the mailbox and revoke tokens; automation pauses
+      x-roles: [CANDIDATE]
+      responses:
+        '204': { description: Disconnected }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /account/mailbox/connect:
+    post:
+      tags: [Mailbox]
+      operationId: startMailboxConnection
+      summary: Start OAuth with Gmail or Outlook; returns the provider URL
+      x-roles: [CANDIDATE]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider]
+              properties:
+                provider: { $ref: '#/components/schemas/MailProvider' }
+      responses:
+        '200':
+          description: Authorization URL
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [authorizeUrl]
+                properties:
+                  authorizeUrl: { type: string, format: uri }
+
+  /account/mailbox/callback:
+    post:
+      tags: [Mailbox]
+      operationId: completeMailboxConnection
+      summary: Finish OAuth; tokens are stored encrypted (NFR-SEC-006)
+      x-roles: [CANDIDATE]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider, code, state]
+              properties:
+                provider: { $ref: '#/components/schemas/MailProvider' }
+                code: { type: string }
+                state: { type: string }
+      responses:
+        '200':
+          description: Connected
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MailboxConnection' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /cvs:
+    get:
+      tags: [CVs]
+      operationId: listCvs
+      summary: Own CVs (SCR-10)
+      x-roles: [CANDIDATE]
+      responses:
+        '200':
+          description: CVs
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CvSummary' }
+    post:
+      tags: [CVs]
+      operationId: uploadCv
+      summary: Upload a PDF, DOCX or image; AI extraction runs in the background (UC03, UC04)
+      x-roles: [CANDIDATE]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: PDF, DOCX, JPG, PNG or HEIC, at most 10 MB and 5 pages (BR-002)
+                makePrimary: { type: boolean, default: true }
+      responses:
+        '202':
+          description: Accepted; poll `getCv` until status is READY, NEEDS_REVIEW or FAILED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CvSummary' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '413': { $ref: '#/components/responses/BadRequest' }
+
+  /cvs/template:
+    post:
+      tags: [CVs]
+      operationId: createCvFromTemplate
+      summary: Create a CV from a template, filled by hand or drafted by AI from raw information (UC05, UC06)
+      x-roles: [CANDIDATE]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CvTemplateRequest' }
+      responses:
+        '201':
+          description: Created by hand
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cv' }
+        '202':
+          description: AI drafting started
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CvSummary' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /cvs/{cvId}:
+    parameters:
+      - $ref: '#/components/parameters/CvId'
+    get:
+      tags: [CVs]
+      operationId: getCv
+      summary: CV with its facts and extraction status (SCR-11, SCR-13)
+      x-roles: [CANDIDATE]
+      responses:
+        '200':
+          description: CV
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cv' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [CVs]
+      operationId: updateCv
+      summary: Set targets (role, seniority, location, work mode, salary) or make it the primary CV
+      x-roles: [CANDIDATE]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CvUpdate' }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cv' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /cvs/{cvId}/facts:
+    parameters:
+      - $ref: '#/components/parameters/CvId'
+    put:
+      tags: [CVs]
+      operationId: replaceCvFacts
+      summary: Save the reviewed facts; matching and tailoring are recomputed
+      x-roles: [CANDIDATE]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { $ref: '#/components/schemas/CvFactInput' }
+      responses:
+        '200':
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cv' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /cvs/{cvId}/pdf:
+    parameters:
+      - $ref: '#/components/parameters/CvId'
+    get:
+      tags: [CVs]
+      operationId: getCvPdf
+      summary: Signed link to the CV as PDF, valid 15 minutes (NFR-PRIV-003)
+      x-roles: [CANDIDATE]
+      responses:
+        '200':
+          description: Signed link
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SignedLink' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /attachments:
+    get:
+      tags: [Attachments]
+      operationId: listAttachments
+      summary: Own certificates (TOEIC, IELTS…)
+      x-roles: [CANDIDATE]
+      responses:
+        '200':
+          description: Attachments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Attachment' }
+    post:
+      tags: [Attachments]
+      operationId: uploadAttachment
+      summary: Upload a certificate to attach to applications (UC16)
+      x-roles: [CANDIDATE]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, title]
+              properties:
+                file: { type: string, format: binary }
+                title: { type: string, maxLength: 120 }
+      responses:
+        '201':
+          description: Uploaded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Attachment' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /market/insights:
+    get:
+      tags: [Market]
+      operationId: getMarketInsights
+      summary: CV compared with the market — demand, salary, skill gaps, roadmap (UC07–UC10, SCR-20)
+      x-roles: [CANDIDATE]
+      parameters:
+        - name: cvId
+          in: query
+          required: false
+          description: Defaults to the primary CV
+          schema: { type: string, format: uuid }
+        - name: roleKey
+          in: query
+          required: false
+          schema: { type: string }
+        - name: locationId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Insights; sections below the data threshold carry `enoughData = false` (BR-006)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MarketInsights' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /jobs:
+    get:
+      tags: [Jobs]
+      operationId: listJobs
+      summary: Job postings with interview chance for the primary CV, sorted by chance then score (UC12, SCR-30)
+      x-roles: [CANDIDATE, ADMIN]
+      description: Admin receives postings without `match` (BR-001).
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: locationId, in: query, schema: { type: string, format: uuid } }
+        - { name: workMode, in: query, schema: { $ref: '#/components/schemas/WorkMode' } }
+        - name: minChance
+          in: query
+          schema: { $ref: '#/components/schemas/InterviewChance' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Page of postings
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageMeta'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/JobSummary' }
+
+  /jobs/{jobId}:
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+    get:
+      tags: [Jobs]
+      operationId: getJob
+      summary: Posting, JD analysis with quotes, and factor values (UC13, SCR-31)
+      x-roles: [CANDIDATE, ADMIN]
+      responses:
+        '200':
+          description: Job detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobDetail' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /jobs/{jobId}/tailored-cv:
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+    get:
+      tags: [Tailored CVs]
+      operationId: getTailoredCv
+      summary: Latest CV tailored for this job, with provenance and evidence per sentence (UC14–UC16, SCR-32)
+      x-roles: [CANDIDATE]
+      responses:
+        '200':
+          description: Tailored CV
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TailoredCv' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [Tailored CVs]
+      operationId: regenerateTailoredCv
+      summary: Optimize the CV for this job now (creates a new version)
+      x-roles: [CANDIDATE]
+      responses:
+        '202':
+          description: Optimization started
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskAccepted' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /tailored-cvs/{tailoredCvId}/sentences/{sentenceId}:
+    parameters:
+      - $ref: '#/components/parameters/TailoredCvId'
+      - name: sentenceId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [Tailored CVs]
+      operationId: updateTailoredSentence
+      summary: Keep, edit or revert one sentence; each revert is also recorded as feedback (UC15)
+      x-roles: [CANDIDATE]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SentenceUpdate' }
+      responses:
+        '200':
+          description: Updated sentence
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TailoredSentence' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /tailored-cvs/{tailoredCvId}/approval:
+    parameters:
+      - $ref: '#/components/parameters/TailoredCvId'
+    post:
+      tags: [Tailored CVs]
+      operationId: approveTailoredCv
+      summary: Approve a tailored CV in REVIEW_FIRST mode (F05.5)
+      x-roles: [CANDIDATE]
+      responses:
+        '200':
+          description: Approved
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TailoredCv' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /tailored-cvs/{tailoredCvId}/preview:
+    parameters:
+      - $ref: '#/components/parameters/TailoredCvId'
+    get:
+      tags: [Tailored CVs]
+      operationId: getTailoredCvPreview
+      summary: The PDF the recruiter receives, ATS checks, and what was left out (SCR-33)
+      x-roles: [CANDIDATE]
+      responses:
+        '200':
+          description: Preview
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TailoredCvPreview' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /applications:
+    get:
+      tags: [Applications]
+      operationId: listApplications
+      summary: Own applications (UC21, SCR-40)
+      x-roles: [CANDIDATE]
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/ApplicationStatus' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Page of applications
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageMeta'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Application' }
+    post:
+      tags: [Applications]
+      operationId: createApplication
+      summary: Apply to one job by hand with its tailored CV (UC17)
+      x-roles: [CANDIDATE]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [jobId]
+              properties:
+                jobId: { type: string, format: uuid }
+      responses:
+        '202':
+          description: Submission queued
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Application' }
+        '409':
+          description: Already applied (BR-018) or tailored CV not READY / not approved
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /applications/{applicationId}:
+    parameters:
+      - $ref: '#/components/parameters/ApplicationId'
+    get:
+      tags: [Applications]
+      operationId: getApplication
+      summary: Application detail with timeline (SCR-41)
+      x-roles: [CANDIDATE]
+      responses:
+        '200':
+          description: Application
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Application' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /applications/{applicationId}/messages:
+    parameters:
+      - $ref: '#/components/parameters/ApplicationId'
+    get:
+      tags: [Applications]
+      operationId: listApplicationMessages
+      summary: Mail thread with AI labels on inbound mail (UC19, UC20)
+      x-roles: [CANDIDATE]
+      responses:
+        '200':
+          description: Messages, oldest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/MailMessage' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /applications/{applicationId}/messages/{messageId}/class:
+    parameters:
+      - $ref: '#/components/parameters/ApplicationId'
+      - name: messageId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [Applications]
+      operationId: correctMessageClass
+      summary: Fix a wrong AI label; used as eval data (BR-014, UC23)
+      x-roles: [CANDIDATE]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [class]
+              properties:
+                class: { $ref: '#/components/schemas/ReplyClass' }
+      responses:
+        '200':
+          description: Corrected
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MailMessage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /applications/{applicationId}/reply-draft:
+    parameters:
+      - $ref: '#/components/parameters/ApplicationId'
+    get:
+      tags: [Applications]
+      operationId: getReplyDraft
+      summary: Reply drafted by AI for the latest interview or offer mail (UC20)
+      x-roles: [CANDIDATE]
+      responses:
+        '200':
+          description: Draft
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReplyDraft' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Applications]
+      operationId: updateReplyDraft
+      summary: Edit the draft before confirming
+      x-roles: [CANDIDATE]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReplyDraftUpdate' }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReplyDraft' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /applications/{applicationId}/reply-draft/confirmation:
+    parameters:
+      - $ref: '#/components/parameters/ApplicationId'
+    post:
+      tags: [Applications]
+      operationId: confirmReplyDraft
+      summary: Confirm and send the reply from the user's mailbox; the only way a reply is sent (BR-022)
+      x-roles: [CANDIDATE]
+      responses:
+        '202':
+          description: Confirmed; sending queued
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReplyDraft' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /automation:
+    get:
+      tags: [Automation]
+      operationId: getAutomation
+      summary: Automation settings and the 8-step pipeline status (UC18, SCR-42)
+      x-roles: [CANDIDATE]
+      responses:
+        '200':
+          description: Automation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Automation' }
+    put:
+      tags: [Automation]
+      operationId: updateAutomation
+      summary: Turn automation on or off and set conditions; defaults work without changes (BR-017, BR-019)
+      x-roles: [CANDIDATE]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AutomationSettings' }
+      responses:
+        '200':
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Automation' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409':
+          description: Mailbox not connected
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /automation/activity:
+    get:
+      tags: [Automation]
+      operationId: listAutomationActivity
+      summary: Activity log of the automation (SCR-42)
+      x-roles: [CANDIDATE]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Page of activity, newest first
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageMeta'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/ActivityEntry' }
+
+  /dashboard:
+    get:
+      tags: [Dashboard]
+      operationId: getDashboard
+      summary: To-do items, best jobs, application pipeline, market summary (SCR-03)
+      x-roles: [CANDIDATE]
+      responses:
+        '200':
+          description: Dashboard
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Dashboard' }
+
+  /feedback:
+    post:
+      tags: [Feedback]
+      operationId: submitFeedback
+      summary: Rate an AI result; resubmitting replaces the previous verdict (UC23)
+      x-roles: [CANDIDATE]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FeedbackInput' }
+      responses:
+        '204': { description: Recorded }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /notifications:
+    get:
+      tags: [Notifications]
+      operationId: listNotifications
+      summary: Notifications for the topbar panel
+      x-roles: [CANDIDATE, ADMIN]
+      parameters:
+        - { name: unreadOnly, in: query, schema: { type: boolean, default: false } }
+      responses:
+        '200':
+          description: Notifications, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Notification' }
+
+  /notifications/{notificationId}/read:
+    post:
+      tags: [Notifications]
+      operationId: markNotificationRead
+      summary: Mark a notification as read
+      x-roles: [CANDIDATE, ADMIN]
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: Marked }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /lookups:
+    get:
+      tags: [Lookups]
+      operationId: getLookups
+      summary: Locations, industries and skill names for forms and filters
+      x-roles: [CANDIDATE, ADMIN]
+      responses:
+        '200':
+          description: Lookups
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Lookups' }
+
+  /admin/job-sources:
+    get:
+      tags: [Admin]
+      operationId: listJobSources
+      summary: Job sources and their collection status (SCR-60)
+      x-roles: [ADMIN]
+      responses:
+        '200':
+          description: Sources
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/JobSource' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Admin]
+      operationId: createJobSource
+      summary: Add a job source (UC22)
+      x-roles: [ADMIN]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/JobSourceInput' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobSource' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/job-sources/{sourceId}:
+    patch:
+      tags: [Admin]
+      operationId: updateJobSource
+      summary: Enable, disable or change rate limit; disabling stops the next collection (BR-005)
+      x-roles: [ADMIN]
+      parameters:
+        - name: sourceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled: { type: boolean }
+                requestsPerMinute: { type: integer, minimum: 1, maximum: 120 }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobSource' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/users:
+    get:
+      tags: [Admin]
+      operationId: listUsers
+      summary: Users without CV content (BR-001, SCR-61)
+      x-roles: [ADMIN]
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Page of users
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageMeta'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Account' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/users/{userId}/status:
+    patch:
+      tags: [Admin]
+      operationId: updateUserStatus
+      summary: Lock or unlock a user (UC22)
+      x-roles: [ADMIN]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [isActive]
+              properties:
+                isActive: { type: boolean }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Account' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/ai-quality:
+    get:
+      tags: [Admin]
+      operationId: getAiQuality
+      summary: AI quality, latency and cost for a period (UC24, SCR-62)
+      x-roles: [ADMIN]
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: Report
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AiQualityReport' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/matching-settings:
+    get:
+      tags: [Admin]
+      operationId: getMatchingSettings
+      summary: Matching weights and interview-chance thresholds
+      x-roles: [ADMIN]
+      responses:
+        '200':
+          description: Settings
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MatchingSettings' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    put:
+      tags: [Admin]
+      operationId: updateMatchingSettings
+      summary: Change weights and thresholds; recorded in the audit log and applied on the next scoring (BR-024)
+      x-roles: [ADMIN]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MatchingSettings' }
+      responses:
+        '200':
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MatchingSettings' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    CvId:
+      name: cvId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    JobId:
+      name: jobId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    TailoredCvId:
+      name: tailoredCvId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ApplicationId:
+      name: applicationId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    PageSize:
+      name: pageSize
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+
+  responses:
+    BadRequest:
+      description: Validation error
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Unauthorized:
+      description: Missing or invalid token; the client returns to Login
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Forbidden:
+      description: Role not allowed; the client shows the Forbidden screen
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    NotFound:
+      description: Not found, or owned by another user (BR-001)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Conflict:
+      description: Conflicts with the current state
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    TooManyRequests:
+      description: Rate limit or daily AI token quota reached (NFR-SEC-003, BR-016)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+
+  schemas:
+    Problem:
+      type: object
+      required: [title, status]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        traceId: { type: string }
+        errors:
+          type: array
+          items:
+            type: object
+            required: [field, message]
+            properties:
+              field: { type: string }
+              message: { type: string }
+
+    PageMeta:
+      type: object
+      required: [page, pageSize, total]
+      properties:
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+
+    TaskAccepted:
+      type: object
+      required: [taskId, status]
+      properties:
+        taskId: { type: string, format: uuid }
+        status: { type: string, enum: [QUEUED, RUNNING] }
+
+    SignedLink:
+      type: object
+      required: [url, expiresAt]
+      properties:
+        url: { type: string, format: uri }
+        expiresAt: { type: string, format: date-time }
+
+    Health:
+      type: object
+      required: [status, database]
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        database: { type: string, enum: [ok, down] }
+        lastWorkerTaskAt: { type: string, format: date-time, nullable: true }
+
+    AiStatus:
+      type: string
+      enum: [PENDING, READY, NEEDS_REVIEW, FAILED]
+      description: Status of any AI-produced resource; the UI never shows an empty result as success
+
+    InterviewChance:
+      type: string
+      enum: [HIGH, MEDIUM, LOW]
+      description: Primary indicator per job; HIGH ≥ 75, MEDIUM ≥ 50 by default (BR-007)
+
+    WorkMode:
+      type: string
+      enum: [ONSITE, HYBRID, REMOTE]
+
+    Seniority:
+      type: string
+      enum: [INTERN, FRESHER, JUNIOR, MIDDLE, SENIOR]
+
+    MailProvider:
+      type: string
+      enum: [GMAIL, OUTLOOK]
+
+    ReplyClass:
+      type: string
+      enum: [INTERVIEW, OFFER, REJECTED, UNKNOWN]
+
+    Provenance:
+      type: string
+      enum: [ORIGINAL, REWRITTEN, INFERRED]
+
+    ApplicationStatus:
+      type: string
+      enum: [QUEUED, SUBMITTED, MANUAL_REQUIRED, FOLLOWED_UP, INTERVIEW, OFFER, REJECTED, FAILED]
+
+    RegisterRequest:
+      type: object
+      required: [email, password, fullName]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8, format: password }
+        fullName: { type: string, maxLength: 120 }
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+
+    LoginResponse:
+      type: object
+      required: [accessToken, expiresAt, account]
+      properties:
+        accessToken: { type: string }
+        expiresAt: { type: string, format: date-time, description: '30 minutes after issue (NFR-SEC-001)' }
+        account: { $ref: '#/components/schemas/Account' }
+
+    Account:
+      type: object
+      required: [id, email, fullName, role, isActive, locale]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        fullName: { type: string }
+        role: { type: string, enum: [CANDIDATE, ADMIN] }
+        isActive: { type: boolean }
+        locale: { type: string, enum: [vi, en] }
+        createdAt: { type: string, format: date-time }
+
+    AccountUpdate:
+      type: object
+      properties:
+        fullName: { type: string, maxLength: 120 }
+        locale: { type: string, enum: [vi, en] }
+
+    PasswordConfirm:
+      type: object
+      required: [password]
+      properties:
+        password: { type: string, format: password }
+
+    PasswordChange:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword: { type: string, format: password }
+        newPassword: { type: string, minLength: 8, format: password }
+
+    MailboxConnection:
+      type: object
+      required: [provider, emailAddress, status, connectedAt]
+      properties:
+        provider: { $ref: '#/components/schemas/MailProvider' }
+        emailAddress: { type: string, format: email }
+        status: { type: string, enum: [ACTIVE, REVOKED, ERROR] }
+        connectedAt: { type: string, format: date-time }
+
+    CvSummary:
+      type: object
+      required: [id, source, status, isPrimary, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        source: { type: string, enum: [UPLOAD_FILE, UPLOAD_IMAGE, TEMPLATE_MANUAL, AI_GENERATED] }
+        status: { $ref: '#/components/schemas/AiStatus' }
+        isPrimary: { type: boolean }
+        targetRole: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    Cv:
+      allOf:
+        - $ref: '#/components/schemas/CvSummary'
+        - type: object
+          required: [facts]
+          properties:
+            targetSeniority: { $ref: '#/components/schemas/Seniority' }
+            targetLocationId: { type: string, format: uuid, nullable: true }
+            targetWorkMode: { $ref: '#/components/schemas/WorkMode' }
+            expectedSalaryMin: { type: integer, nullable: true }
+            facts:
+              type: array
+              items: { $ref: '#/components/schemas/CvFact' }
+
+    CvFactInput:
+      type: object
+      required: [kind, body]
+      properties:
+        kind: { type: string, enum: [PROFILE, SUMMARY, EXPERIENCE, PROJECT, EDUCATION, CERTIFICATE, SKILL_LIST] }
+        title: { type: string, nullable: true }
+        organization: { type: string, nullable: true }
+        startDate: { type: string, format: date, nullable: true }
+        endDate: { type: string, format: date, nullable: true }
+        body: { type: string }
+        skills:
+          type: array
+          items: { type: string }
+          description: Skill names; normalized to the taxonomy on save
+
+    CvFact:
+      allOf:
+        - $ref: '#/components/schemas/CvFactInput'
+        - type: object
+          required: [id, position, needsReview]
+          properties:
+            id: { type: string, format: uuid }
+            position: { type: integer }
+            confidence: { type: number, minimum: 0, maximum: 1, nullable: true }
+            needsReview: { type: boolean, description: 'Low OCR or extraction confidence; shown as "Cần bạn kiểm tra"' }
+            originalSkills:
+              type: array
+              items: { type: string }
+              description: Names as written in the CV before normalization, e.g. "ReactJS"
+
+    CvUpdate:
+      type: object
+      properties:
+        isPrimary: { type: boolean }
+        targetRole: { type: string }
+        targetSeniority: { $ref: '#/components/schemas/Seniority' }
+        targetLocationId: { type: string, format: uuid }
+        targetWorkMode: { $ref: '#/components/schemas/WorkMode' }
+        expectedSalaryMin: { type: integer, minimum: 0 }
+
+    CvTemplateRequest:
+      type: object
+      required: [templateId, mode]
+      properties:
+        templateId: { type: string }
+        mode: { type: string, enum: [MANUAL, AI] }
+        facts:
+          type: array
+          description: Required when mode is MANUAL
+          items: { $ref: '#/components/schemas/CvFactInput' }
+        rawInformation:
+          type: string
+          maxLength: 10000
+          description: Required when mode is AI; the AI uses only this information (BR-009)
+
+    Attachment:
+      type: object
+      required: [id, title, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    MarketInsights:
+      type: object
+      required: [roleKey, seniority, location, sampleSize, computedAt, demand, salary, skillGaps, roadmap]
+      properties:
+        roleKey: { type: string }
+        seniority: { $ref: '#/components/schemas/Seniority' }
+        location: { type: string }
+        sampleSize: { type: integer }
+        computedAt: { type: string, format: date-time }
+        cvReading:
+          type: string
+          description: What the system read from the CV, e.g. level and skill count
+        demand:
+          type: object
+          required: [enoughData]
+          properties:
+            enoughData: { type: boolean }
+            summary: { type: string, description: 'Written by AI using only the numbers below (BR-006)' }
+            monthlyPostings:
+              type: array
+              items:
+                type: object
+                required: [month, postings]
+                properties:
+                  month: { type: string, format: date }
+                  postings: { type: integer }
+            roleTrends:
+              type: array
+              items:
+                type: object
+                required: [role, changePct]
+                properties:
+                  role: { type: string }
+                  changePct: { type: number }
+            applicantsPerPosting: { type: number }
+            competition: { type: string, enum: [LOW, MEDIUM, HIGH] }
+            locationShares:
+              type: array
+              items:
+                type: object
+                required: [location, postings, sharePct]
+                properties:
+                  location: { type: string }
+                  postings: { type: integer }
+                  sharePct: { type: number }
+            workModeShares:
+              type: object
+              properties:
+                onsitePct: { type: number }
+                hybridPct: { type: number }
+                remotePct: { type: number }
+        salary:
+          type: object
+          required: [enoughData]
+          properties:
+            enoughData: { type: boolean }
+            summary: { type: string }
+            suggestedRange:
+              type: object
+              properties:
+                min: { type: integer }
+                max: { type: integer }
+            byLevel:
+              type: array
+              items: { $ref: '#/components/schemas/SalaryBand' }
+            byIndustry:
+              type: array
+              items: { $ref: '#/components/schemas/SalaryBand' }
+            companies:
+              type: array
+              items:
+                type: object
+                required: [company]
+                properties:
+                  company: { type: string }
+                  industry: { type: string }
+                  min: { type: integer, nullable: true }
+                  max: { type: integer, nullable: true }
+        skillGaps:
+          type: object
+          required: [skills]
+          properties:
+            summary: { type: string }
+            skills:
+              type: array
+              items:
+                type: object
+                required: [skill, sharePct, status]
+                properties:
+                  skill: { type: string }
+                  sharePct: { type: number }
+                  status: { type: string, enum: [HAVE, INFERRED, MISSING] }
+                  inferredFrom: { type: string, nullable: true }
+                  priority: { type: string, enum: [HIGH, MEDIUM, LOW], nullable: true }
+                  why: { type: string, nullable: true }
+        roadmap:
+          type: object
+          properties:
+            summary: { type: string }
+            years:
+              type: array
+              items:
+                type: object
+                required: [year, targetRole, courses]
+                properties:
+                  year: { type: integer }
+                  targetRole: { type: string }
+                  salaryRange: { type: string }
+                  courses:
+                    type: array
+                    items:
+                      type: object
+                      required: [title, inCatalog]
+                      properties:
+                        title: { type: string }
+                        inCatalog: { type: boolean, description: 'false = labelled "gợi ý của AI"' }
+            tracks:
+              type: array
+              items:
+                type: object
+                required: [track, chanceNow, chanceAfterYearOne]
+                properties:
+                  track: { type: string }
+                  chanceNow: { $ref: '#/components/schemas/InterviewChance' }
+                  chanceAfterYearOne: { $ref: '#/components/schemas/InterviewChance' }
+                  needs: { type: string }
+
+    SalaryBand:
+      type: object
+      required: [key, p25, p50, p75, sampleSize]
+      properties:
+        key: { type: string }
+        p25: { type: integer }
+        p50: { type: integer }
+        p75: { type: integer }
+        sampleSize: { type: integer }
+        isYou: { type: boolean }
+
+    Match:
+      type: object
+      required: [chance, score, factors, computedAt]
+      description: Computed by formula, never by the LLM (BR-012)
+      properties:
+        chance: { $ref: '#/components/schemas/InterviewChance' }
+        score: { type: integer, minimum: 0, maximum: 100 }
+        factors:
+          type: object
+          required: [skill, semantic, experience, location]
+          properties:
+            skill: { type: number, minimum: 0, maximum: 1 }
+            semantic: { type: number, minimum: 0, maximum: 1 }
+            experience: { type: number, minimum: 0, maximum: 1 }
+            location: { type: number, minimum: 0, maximum: 1 }
+        computedAt: { type: string, format: date-time }
+
+    JobSummary:
+      type: object
+      required: [id, title, company, url, status]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        company: { type: string }
+        location: { type: string, nullable: true }
+        workMode: { $ref: '#/components/schemas/WorkMode' }
+        salaryMin: { type: integer, nullable: true }
+        salaryMax: { type: integer, nullable: true }
+        postedAt: { type: string, format: date-time, nullable: true }
+        url: { type: string, format: uri }
+        status: { type: string, enum: [OPEN, EXPIRED] }
+        match:
+          allOf:
+            - $ref: '#/components/schemas/Match'
+          nullable: true
+          description: Absent for Admin
+        cvState:
+          type: string
+          nullable: true
+          enum: [NOT_STARTED, OPTIMIZING, READY, NEEDS_REVIEW, FAILED, MANUAL_REQUIRED, NOT_OPTIMIZED]
+          description: NOT_OPTIMIZED when the skill factor is 0
+        applied: { type: boolean }
+
+    Quote:
+      type: object
+      required: [start, end, text]
+      properties:
+        start: { type: integer }
+        end: { type: integer }
+        text: { type: string }
+
+    JobDetail:
+      allOf:
+        - $ref: '#/components/schemas/JobSummary'
+        - type: object
+          required: [description, analysisStatus, requirements, insights]
+          properties:
+            description: { type: string }
+            analysisStatus: { $ref: '#/components/schemas/AiStatus' }
+            applyChannel: { type: string, enum: [FORM, EMAIL, MANUAL_ONLY] }
+            requirements:
+              type: array
+              items:
+                type: object
+                required: [kind, text, quote]
+                properties:
+                  kind: { type: string, enum: [MUST, NICE] }
+                  skill: { type: string, nullable: true }
+                  text: { type: string }
+                  quote: { $ref: '#/components/schemas/Quote' }
+                  candidateHas: { type: string, enum: [HAVE, INFERRED, MISSING], nullable: true }
+            insights:
+              type: array
+              items:
+                type: object
+                required: [kind, text, quote]
+                properties:
+                  kind: { type: string, enum: [HIGHLIGHT, WEAKNESS, KEYWORD] }
+                  text: { type: string }
+                  quote: { $ref: '#/components/schemas/Quote' }
+
+    Evidence:
+      type: object
+      required: [type, label]
+      properties:
+        type: { type: string, enum: [FACT, INFERENCE, JD_REQUIREMENT] }
+        label: { type: string, description: 'Human-readable, e.g. "Kinh nghiệm: Backend Intern, Công ty GHI"' }
+        factId: { type: string, format: uuid, nullable: true }
+        fromSkill: { type: string, nullable: true }
+        toSkill: { type: string, nullable: true }
+        requirementId: { type: string, format: uuid, nullable: true }
+
+    TailoredSentence:
+      type: object
+      required: [id, section, position, text, provenance, needsReview, state, evidence]
+      properties:
+        id: { type: string, format: uuid }
+        section: { type: string }
+        position: { type: integer }
+        text: { type: string }
+        provenance: { $ref: '#/components/schemas/Provenance' }
+        needsReview: { type: boolean, description: 'Weak evidence; not used when applying' }
+        state: { type: string, enum: [ACTIVE, EDITED, REVERTED] }
+        originalText: { type: string, nullable: true }
+        evidence:
+          type: array
+          items: { $ref: '#/components/schemas/Evidence' }
+
+    TailoredCv:
+      type: object
+      required: [id, jobId, version, status, sentences, requirementCoverage]
+      properties:
+        id: { type: string, format: uuid }
+        jobId: { type: string, format: uuid }
+        version: { type: integer }
+        status: { $ref: '#/components/schemas/AiStatus' }
+        atsPassed: { type: boolean, nullable: true }
+        approvedAt: { type: string, format: date-time, nullable: true }
+        coverLetter: { type: string, nullable: true }
+        sentences:
+          type: array
+          items: { $ref: '#/components/schemas/TailoredSentence' }
+        requirementCoverage:
+          type: array
+          description: What the JD asks and what the CV answers
+          items:
+            type: object
+            required: [skill, state]
+            properties:
+              skill: { type: string }
+              state: { type: string, enum: [MET, INFERRED, NOT_ADDED] }
+              note: { type: string }
+        attachments:
+          type: array
+          items: { $ref: '#/components/schemas/Attachment' }
+
+    SentenceUpdate:
+      type: object
+      required: [action]
+      properties:
+        action: { type: string, enum: [KEEP, EDIT, REVERT] }
+        text: { type: string, description: Required when action is EDIT }
+
+    TailoredCvPreview:
+      type: object
+      required: [pdf, atsChecks, leftOut]
+      properties:
+        pdf: { $ref: '#/components/schemas/SignedLink' }
+        fileName: { type: string }
+        atsChecks:
+          type: array
+          items:
+            type: object
+            required: [check, passed]
+            properties:
+              check: { type: string }
+              passed: { type: boolean }
+        leftOut:
+          type: array
+          items: { type: string }
+          description: Sentences not sent, e.g. the ones waiting for review
+
+    Application:
+      type: object
+      required: [id, job, mode, status, chanceAtApply, timeline]
+      properties:
+        id: { type: string, format: uuid }
+        job: { $ref: '#/components/schemas/JobSummary' }
+        tailoredCvId: { type: string, format: uuid, nullable: true }
+        mode: { type: string, enum: [MANUAL, AUTO] }
+        status: { $ref: '#/components/schemas/ApplicationStatus' }
+        chanceAtApply: { $ref: '#/components/schemas/InterviewChance' }
+        manualReason: { type: string, nullable: true }
+        submittedAt: { type: string, format: date-time, nullable: true }
+        timeline:
+          type: array
+          items:
+            type: object
+            required: [at, title]
+            properties:
+              at: { type: string, format: date-time }
+              title: { type: string }
+              detail: { type: string }
+
+    MailMessage:
+      type: object
+      required: [id, direction, kind, from, at]
+      properties:
+        id: { type: string, format: uuid }
+        direction: { type: string, enum: [OUTBOUND, INBOUND] }
+        kind: { type: string, enum: [APPLICATION, FOLLOW_UP, REPLY, RECRUITER] }
+        from: { type: string }
+        subject: { type: string, nullable: true }
+        body: { type: string, nullable: true }
+        at: { type: string, format: date-time }
+        class: { $ref: '#/components/schemas/ReplyClass' }
+        classConfidence: { type: number, minimum: 0, maximum: 1, nullable: true }
+        correctedClass: { $ref: '#/components/schemas/ReplyClass' }
+
+    ReplyDraft:
+      type: object
+      required: [id, to, subject, body, status]
+      properties:
+        id: { type: string, format: uuid }
+        to: { type: string, format: email }
+        subject: { type: string }
+        body: { type: string }
+        status: { type: string, enum: [DRAFT, CONFIRMED, SENT, DISCARDED] }
+        confirmedAt: { type: string, format: date-time, nullable: true }
+
+    ReplyDraftUpdate:
+      type: object
+      properties:
+        to: { type: string, format: email }
+        subject: { type: string, maxLength: 300 }
+        body: { type: string, maxLength: 10000 }
+
+    AutomationSettings:
+      type: object
+      required: [enabled, mode, minMatchScore, dailyLimit, followUpAfterDays, maxFollowUps, excludedCompanies]
+      properties:
+        enabled: { type: boolean }
+        mode: { type: string, enum: [AUTO, REVIEW_FIRST], default: AUTO }
+        minMatchScore: { type: integer, minimum: 0, maximum: 100, default: 70 }
+        dailyLimit: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        followUpAfterDays: { type: integer, minimum: 1, maximum: 30, default: 5 }
+        maxFollowUps: { type: integer, minimum: 0, maximum: 3, default: 1 }
+        excludedCompanies:
+          type: array
+          items: { type: string }
+
+    Automation:
+      type: object
+      required: [settings, mailboxConnected, submittedToday, steps]
+      properties:
+        settings: { $ref: '#/components/schemas/AutomationSettings' }
+        mailboxConnected: { type: boolean }
+        submittedToday: { type: integer }
+        steps:
+          type: array
+          description: The 8 steps from CV upload to reply notification
+          items:
+            type: object
+            required: [key, state]
+            properties:
+              key:
+                type: string
+                enum: [UPLOAD_CV, READ_CV, ANALYZE_MARKET, FIND_AND_SCORE_JOBS, OPTIMIZE_CVS, SUBMIT, FOLLOW_UP, WATCH_REPLIES]
+              state: { type: string, enum: [WAITING, RUNNING, DONE, WATCHING, NEEDS_YOU] }
+              result: { type: string, nullable: true }
+              needsYou: { type: string, nullable: true, description: 'One of the 3 stops where the user is asked' }
+
+    ActivityEntry:
+      type: object
+      required: [at, text]
+      properties:
+        at: { type: string, format: date-time }
+        text: { type: string }
+        link: { type: string, nullable: true }
+
+    Dashboard:
+      type: object
+      required: [todos, bestJobs, pipeline]
+      properties:
+        todos:
+          type: array
+          items:
+            type: object
+            required: [kind, title, link]
+            properties:
+              kind: { type: string, enum: [CONFIRM_REPLY, REVIEW_SENTENCE, APPLY_MANUALLY, FIX_CV] }
+              title: { type: string }
+              detail: { type: string }
+              link: { type: string }
+        bestJobs:
+          type: array
+          items: { $ref: '#/components/schemas/JobSummary' }
+        pipeline:
+          type: object
+          properties:
+            submitted: { type: integer }
+            followedUp: { type: integer }
+            interview: { type: integer }
+            offer: { type: integer }
+            rejected: { type: integer }
+        marketSummary: { type: string, nullable: true }
+
+    FeedbackInput:
+      type: object
+      required: [targetType, targetId, verdict]
+      properties:
+        targetType: { type: string, enum: [MATCH, SENTENCE, REPLY_CLASS, INSIGHT] }
+        targetId: { type: string, format: uuid }
+        verdict: { type: string, enum: [USEFUL, NOT_USEFUL, WRONG_LABEL] }
+        correctedValue: { type: string, nullable: true }
+
+    Notification:
+      type: object
+      required: [id, title, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        body: { type: string, nullable: true }
+        link: { type: string, nullable: true }
+        readAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    Lookups:
+      type: object
+      required: [locations, industries, skills]
+      properties:
+        locations:
+          type: array
+          items: { $ref: '#/components/schemas/NamedItem' }
+        industries:
+          type: array
+          items: { $ref: '#/components/schemas/NamedItem' }
+        skills:
+          type: array
+          items: { $ref: '#/components/schemas/NamedItem' }
+
+    NamedItem:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+
+    JobSourceInput:
+      type: object
+      required: [name, kind, baseUrl]
+      properties:
+        name: { type: string, maxLength: 80 }
+        kind: { type: string, enum: [TOPCV, LINKEDIN, COMPANY_SITE] }
+        baseUrl: { type: string, format: uri }
+        requestsPerMinute: { type: integer, minimum: 1, maximum: 120, default: 10 }
+
+    JobSource:
+      allOf:
+        - $ref: '#/components/schemas/JobSourceInput'
+        - type: object
+          required: [id, enabled]
+          properties:
+            id: { type: string, format: uuid }
+            enabled: { type: boolean }
+            lastCollectedAt: { type: string, format: date-time, nullable: true }
+            lastError: { type: string, nullable: true }
+
+    AiQualityReport:
+      type: object
+      required: [from, to, metrics]
+      properties:
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        metrics:
+          type: object
+          properties:
+            failedRate: { type: number }
+            droppedSentenceRate: { type: number, description: Sentences removed for missing evidence }
+            replyClassAccuracy: { type: number, description: Against labels corrected by users }
+            topTenAppliedOrUsefulRate: { type: number, description: NFR-AI-009 }
+            interviewRateByChance:
+              type: object
+              properties:
+                HIGH: { type: number }
+                MEDIUM: { type: number }
+                LOW: { type: number }
+            latencyP95Ms: { type: integer }
+            tokens: { type: integer }
+            costUsd: { type: number }
+
+    MatchingSettings:
+      type: object
+      required: [weightSkill, weightSemantic, weightExperience, weightLocation, chanceHighMin, chanceMediumMin]
+      properties:
+        weightSkill: { type: integer, minimum: 0, default: 40 }
+        weightSemantic: { type: integer, minimum: 0, default: 20 }
+        weightExperience: { type: integer, minimum: 0, default: 25 }
+        weightLocation: { type: integer, minimum: 0, default: 15 }
+        chanceHighMin: { type: integer, minimum: 0, maximum: 100, default: 75 }
+        chanceMediumMin: { type: integer, minimum: 0, maximum: 100, default: 50 }
+        weightsVersion: { type: integer, readOnly: true }

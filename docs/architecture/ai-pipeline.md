@@ -120,7 +120,7 @@ flowchart TB
 
 ## 2. Data used by the AI
 
-Tên bảng là đề xuất, sẽ chốt ở phần thiết kế database.
+Tên bảng khớp với [Data model](../06-data-model.md) và [acaj.dbml](../database/acaj.dbml).
 
 ```mermaid
 flowchart LR
@@ -130,7 +130,7 @@ flowchart LR
     skills["skills"]
     rel["skill_relations<br/><i>cha–con · tên gọi khác</i>"]
     inf["skill_inferences<br/><i>tính sẵn: A suy ra B, độ sâu ≤ 2</i>"]
-    jobs["jobs<br/><i>JD · embedding</i>"]
+    jobs["job_postings<br/><i>JD · embedding</i>"]
     req["job_requirements<br/><i>bắt buộc · nên có · đoạn trích</i>"]
     tcv["tailored_cvs<br/><i>bản CV theo job · trạng thái</i>"]
     sen["tailored_sentences<br/><i>ORIGINAL · REWRITTEN · INFERRED</i>"]
@@ -165,7 +165,7 @@ flowchart LR
 | Phả hệ kỹ năng | `skills`, `skill_relations` | Chuẩn hóa tên kỹ năng ("ReactJS" → "React") |
 | Kỹ năng suy ra | `skill_inferences`, tính lại khi phả hệ đổi | Tra một lần, không phải đi đệ quy mỗi lượt (BR-008) |
 | Yêu cầu của JD | `job_requirements` (kèm `quote_start`, `quote_end`) | Chấm điểm kỹ năng; trích dẫn trong phân tích JD |
-| Embedding | cột `embedding vector` trên `cvs`, `jobs` (pgvector) | Lọc nhanh job gần nghĩa; yếu tố "gần nghĩa" của điểm khớp |
+| Embedding | cột `embedding vector` trên `cvs`, `job_postings` (pgvector) | Lọc nhanh job gần nghĩa; yếu tố "gần nghĩa" của điểm khớp |
 | Câu đã viết và căn cứ | `tailored_sentences`, `sentence_evidence` | Hiển thị nhãn nguồn gốc và "Vì sao có câu này" |
 | Kết quả hồ sơ | `applications`, `application_outcomes` | Hiệu chỉnh ngưỡng khả năng đậu phỏng vấn (BR-024) |
 | Khóa học | `courses`, `course_skills` | Gợi ý lộ trình cho kỹ năng còn thiếu |
@@ -179,19 +179,20 @@ flowchart LR
 | Job nào nên chấm điểm? | pgvector lấy vài trăm job gần nghĩa nhất với CV, rồi `Match Scorer` tính điểm bằng công thức |
 | Câu này dựa vào đâu? | `sentence_evidence` trỏ tới đúng một fact hoặc một dòng suy ra |
 | Thiếu gì, học gì? | Yêu cầu không khớp và không suy ra được → skill gap; nối `course_skills` → khóa học |
-| Thị trường thế nào? | Truy vấn SQL gom nhóm trên `jobs` và `job_requirements` |
+| Thị trường thế nào? | Truy vấn SQL gom nhóm trên `job_postings` và `job_requirements` |
 | Khả năng đậu phỏng vấn có đúng không? | Gom `application_outcomes` theo mức Cao / Trung bình / Thấp để hiệu chỉnh ngưỡng |
 
 ## 4. Walkthrough — Backend Developer tại Công ty ABC
 
 Đây là ví dụ hiển thị trên màn [Tối ưu CV cho từng job](../04-information-architecture.md#screen-inventory) của prototype.
 
-1. **Input.** CV gốc có fact #2 "Backend Intern, Công ty GHI: xây dựng REST API cho hệ thống đặt hàng; viết truy vấn MySQL, tối ưu index". JD của Công ty ABC yêu cầu REST API, Node.js, SQL, Docker, CI/CD.
-2. **Scoring.** pgvector đưa job này vào nhóm cần chấm. Kỹ năng 92, gần nghĩa 81, kinh nghiệm 78, địa điểm 100 → điểm khớp 86 → khả năng đậu phỏng vấn **Cao**. Điểm được lưu trước khi gọi LLM.
+1. **Input.** CV gốc có fact #2 "Backend Intern, Công ty GHI: xây dựng REST API cho hệ thống đặt hàng; viết truy vấn MySQL, tối ưu index". JD của Công ty ABC yêu cầu bắt buộc REST API, Node.js, SQL, Git; nên có Docker.
+2. **Scoring.** pgvector đưa job này vào nhóm cần chấm. Kỹ năng 0,87, gần nghĩa 0,80, kinh nghiệm 0,80, địa điểm 1 → điểm khớp 86; không thiếu yêu cầu bắt buộc nào → khả năng đậu phỏng vấn **Cao** (cách tính ở [Algorithms §9](../09-algorithms.md#9-worked-example-prototype-data)). Điểm được lưu trước khi gọi LLM.
 3. **Gom căn cứ.**
    - REST API, Node.js: có fact trực tiếp.
    - SQL: không có trong CV, nhưng `skill_inferences` có dòng `MySQL → SQL` (độ sâu 1) → được suy ra.
-   - Docker, CI/CD: không có dòng suy ra nào → không thêm, đưa vào skill gaps.
+   - Git: có fact trực tiếp.
+   - Docker (nên có): không có dòng suy ra nào → không thêm, đưa vào skill gaps.
    - Toàn bộ fact của CV cùng ba nhóm trên được đưa vào prompt.
 4. **LLM writing.** Summary mới: "Lập trình viên backend mới tốt nghiệp, đã thực tập xây dựng REST API bằng Node.js cho hệ thống đặt hàng", trích fact #2 và fact dự án.
 5. **Validation.**

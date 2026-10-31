@@ -40,7 +40,26 @@ Mindmap có 6 nhánh, tương ứng F01–F06. F07 được bổ sung để đo 
 
 Nguyên tắc: **AI đọc hiểu và viết, luật tính điểm và quyết định.** LLM lỗi thì các phần do luật tính vẫn chạy. Chi tiết: [AI trong ACAJ](docs/01-scope.md#ai-trong-acaj).
 
-### 1.2 INVEST requirements
+### 1.2 Use cases
+
+```mermaid
+flowchart LR
+    C(("Candidate"))
+    A(("Admin"))
+    C --- UC01["UC01-02 Đăng ký, đăng nhập"]
+    C --- UC03["UC03-06 Nhập / tạo CV"]
+    C --- UC07["UC07-10 Phân tích thị trường"]
+    C --- UC12["UC12-13 Job, matching, phân tích JD"]
+    C --- UC14["UC14-16 Tối ưu CV, cover letter"]
+    C --- UC17["UC17-18, UC21 Ứng tuyển, theo dõi"]
+    C --- UC23["UC23 Đánh giá kết quả AI"]
+    A --- UC22["UC22 Quản trị nguồn job, người dùng"]
+    A --- UC24["UC24 Chất lượng AI, trọng số matching"]
+```
+
+Các tác nhân hệ thống không vẽ trong hình: bộ xử lý nền (UC11 thu thập JD, UC19 mail nhắc, UC20 xử lý mail trúng tuyển), AI package (OCR, trích xuất, kiểm chứng, phân loại, eval; không tự ghi database, không tự quyết định nộp hay gửi), LLM provider (chỉ nhận văn bản đã che thông tin nhạy cảm) và nhà cung cấp email. Chi tiết: [Actors, roles, and use cases](docs/03-use-cases.md).
+
+### 1.3 INVEST requirements
 
 Backlog gồm 24 user story, bao phủ tài khoản, nhập/tạo CV, phân tích thị trường, tìm và khớp job, tối ưu CV, ứng tuyển, theo dõi, quản trị, và phản hồi/chất lượng AI. Mỗi story được kiểm tra theo INVEST trước khi sẵn sàng phát triển.
 
@@ -65,25 +84,6 @@ US23–US24   Phản hồi kết quả AI, chỉ số chất lượng và trọn
 ```
 
 Chi tiết: [INVEST Requirements](docs/05-invest-requirements.md).
-
-### 1.3 Use cases
-
-```mermaid
-flowchart LR
-    C(("Candidate"))
-    A(("Admin"))
-    C --- UC01["UC01-02 Đăng ký, đăng nhập"]
-    C --- UC03["UC03-06 Nhập / tạo CV"]
-    C --- UC07["UC07-10 Phân tích thị trường"]
-    C --- UC12["UC12-13 Job, matching, phân tích JD"]
-    C --- UC14["UC14-16 Tối ưu CV, cover letter"]
-    C --- UC17["UC17-18, UC21 Ứng tuyển, theo dõi"]
-    C --- UC23["UC23 Đánh giá kết quả AI"]
-    A --- UC22["UC22 Quản trị nguồn job, người dùng"]
-    A --- UC24["UC24 Chất lượng AI, trọng số matching"]
-```
-
-Các tác nhân hệ thống không vẽ trong hình: bộ xử lý nền (UC11 thu thập JD, UC19 mail nhắc, UC20 xử lý mail trúng tuyển), AI package (OCR, trích xuất, kiểm chứng, phân loại, eval; không tự ghi database, không tự quyết định nộp hay gửi), LLM provider (chỉ nhận văn bản đã che thông tin nhạy cảm) và nhà cung cấp email. Chi tiết: [Actors, roles, and use cases](docs/03-use-cases.md).
 
 ### 1.4 Roles and permissions
 
@@ -111,7 +111,7 @@ Mỗi use case có tiêu chí nghiệm thu quan sát được (AC-UC01 đến AC
 | Ranh giới AI | LLM không tính điểm, không tạo con số thị trường, không tự quyết định nộp hay gửi; LLM lỗi thì tác vụ AI `FAILED`, thử lại 3 lần, phần do luật tính không bị ảnh hưởng |
 | Grounding | Mọi câu AI viết vào CV/cover letter trích dẫn fact trong CV gốc hoặc kỹ năng suy ra theo phả hệ; nhận định về JD trỏ về đoạn JD; câu không có căn cứ bị loại; nhãn `ORIGINAL` / `REWRITTEN` / `INFERRED` |
 | Nội dung CV | Không bịa công ty, vị trí, bằng cấp, chứng chỉ; CV gốc không bị ghi đè, mỗi job một phiên bản; sửa CV tự động, xem lại và hoàn tác được |
-| Matching | Chỉ số chính là khả năng đậu phỏng vấn (Cao ≥ 75, Trung bình ≥ 50), tính từ điểm khớp 0–100: kỹ năng theo phả hệ 40, tương đồng ngữ nghĩa 20, kinh nghiệm 25, địa điểm 15; kỹ năng = 0 thì tối đa 39; luôn kèm giá trị từng yếu tố |
+| Matching | Chỉ số chính là khả năng đậu phỏng vấn (Cao ≥ 75, Trung bình ≥ 50, hạ một mức khi thiếu yêu cầu bắt buộc hoặc cạnh tranh cao), tính từ điểm khớp 0–100: kỹ năng theo phả hệ 40, tương đồng ngữ nghĩa 20, kinh nghiệm 25, địa điểm 15; kỹ năng = 0 thì tối đa 39; luôn kèm giá trị từng yếu tố |
 | An toàn AI | JD và email là văn bản không tin cậy, chỉ dẫn trong đó bị bỏ qua; đầu ra phải đúng schema; email độ tin cậy < 0.8 là `UNKNOWN`; che thông tin nhạy cảm trước khi gửi LLM |
 | Chất lượng AI | Trích xuất CV ≥ 90% trường đúng; kỹ năng JD F1 ≥ 0.85; 100% câu có căn cứ; 0 trường hợp bịa; phân loại email precision ≥ 0.95; eval chạy trong CI |
 | Tự động hóa | Người dùng chỉ nạp CV và xác nhận thư trả lời; đọc CV, phân tích, tìm job, tối ưu CV, nộp, nhắc đều tự chạy. Chế độ Tự động (mặc định) hoặc Duyệt trước. Chỉ dừng hỏi khi: câu CV chưa đủ căn cứ, trang bắt buộc nộp tay, có thư mời cần trả lời |
@@ -267,7 +267,7 @@ Screen ID, luồng tác vụ chính, hợp đồng trạng thái UI (kể cả t
 
 ### 2.3 Current UI prototype
 
-Prototype có thể bấm thử của vai trò Ứng viên nằm trên canvas thiết kế: [ACAJ UI Prototype](https://claude.ai/artifact/Jk4AtZzuxHpgVd6RqKtTSo). Prototype gồm 9 màn chính, liên kết với nhau theo [screen inventory](docs/04-information-architecture.md#screen-inventory):
+Prototype có thể bấm thử nằm trên canvas thiết kế: [ACAJ UI Prototype](https://claude.ai/artifact/Jk4AtZzuxHpgVd6RqKtTSo). Prototype gồm 12 màn chính, liên kết với nhau theo [screen inventory](docs/04-information-architecture.md#screen-inventory):
 
 | Màn | Nội dung |
 |---|---|
@@ -279,6 +279,9 @@ Prototype có thể bấm thử của vai trò Ứng viên nằm trên canvas th
 | `SCR-32` Tối ưu CV cho từng job | Câu được tô theo nguồn gốc, bấm để xem căn cứ |
 | `SCR-33` Xem trước CV gửi đi | Bản PDF nhà tuyển dụng nhận, kiểm tra ATS |
 | `SCR-41` Chi tiết hồ sơ | Thư mời phỏng vấn, thư trả lời AI soạn, bước xác nhận trước khi gửi |
+| `SCR-60` Nguồn job (Admin) | Bật/tắt nguồn, tần suất, kỹ năng chưa có trong phả hệ |
+| `SCR-61` Người dùng (Admin) | Tài khoản, mức dùng token, khóa/mở; không thấy nội dung CV |
+| `SCR-62` Chất lượng AI (Admin) | Chỉ số thật, hiệu chỉnh khả năng đậu phỏng vấn, trọng số, eval, chi phí |
 
 **Tự động ứng tuyển (`SCR-42`):** nạp CV một lần, quy trình 8 bước tự chạy; hệ thống chỉ hỏi bạn ở 3 chỗ.
 
@@ -300,9 +303,307 @@ Prototype có thể bấm thử của vai trò Ứng viên nằm trên canvas th
 
 ![Màn chi tiết hồ sơ ứng tuyển](docs/images/application.png)
 
-Ngôn ngữ thiết kế: chữ Be Vietnam Pro cho giao diện, Noto Serif cho tờ CV; màu nhấn xanh thông `#0F5C4D`; màu hổ phách chỉ dành cho nội dung AI suy ra hoặc cần xem lại. Nội dung đặt phẳng trên nền, chỉ tờ CV có khung giấy. Prototype đang ở chế độ riêng tư, cần chia sẻ từ menu Share để người khác mở được. Màn của Admin (`SCR-60` đến `SCR-62`) chưa có prototype.
+**Chất lượng AI (`SCR-62`, Admin):** chỉ số từ người dùng thật, khả năng đậu phỏng vấn so với kết quả phỏng vấn thật, trọng số matching, kết quả eval, chi phí.
 
-## 3. C4 Architecture
+![Màn chất lượng AI](docs/images/admin-ai-quality.png)
+
+Ngôn ngữ thiết kế: chữ Be Vietnam Pro cho giao diện, Noto Serif cho tờ CV; màu nhấn xanh thông `#0F5C4D`; màu hổ phách chỉ dành cho nội dung AI suy ra hoặc cần xem lại. Nội dung đặt phẳng trên nền, chỉ tờ CV có khung giấy. Prototype đang ở chế độ riêng tư, cần chia sẻ từ menu Share để người khác mở được.
+
+## 3. Database Diagrams (DBML / ER)
+
+Mô hình dữ liệu PostgreSQL (kèm pgvector) gồm 41 bảng, viết bằng DBML: [acaj.dbml](docs/database/acaj.dbml). Các ràng buộc CHECK mà DBML không diễn đạt được nằm ở [checks.sql](docs/database/checks.sql). Schema đã được sinh SQL từ DBML, nạp vào PostgreSQL 16 + pgvector và chạy thử với ví dụ job Backend tại Công ty ABC.
+
+### 3.1 Table groups
+
+```mermaid
+%%{init: {"flowchart": {"nodeSpacing": 30, "rankSpacing": 60}}}%%
+flowchart LR
+  subgraph identity ["Identity & settings"]
+    U[app_users]
+    MB[mailbox_connections]
+    AS[automation_settings]
+    EX[automation_excluded_companies]
+    SS[system_settings]
+  end
+  subgraph taxonomy ["Lookups & skill taxonomy"]
+    LOC[locations]
+    IND[industries]
+    SK[skills] --> SA[skill_aliases]
+    SK --> SR[skill_relations] --> SI[skill_inferences]
+    CR[courses] --> CS[course_skills]
+  end
+  subgraph cv ["CV"]
+    CV[cvs] --> CF[cv_facts] --> CFS[cv_fact_skills]
+    AT[attachments]
+  end
+  subgraph jobs ["Job postings"]
+    SRC[job_sources] --> JP[job_postings]
+    CO[companies] --> JP
+    JP --> JR[job_requirements]
+    JP --> JI[jd_insights]
+  end
+  subgraph market ["Market statistics"]
+    MS[market_snapshots] --> MMP[market_monthly_postings]
+    MS --> MLS[market_location_shares]
+    MS --> MSB[market_salary_bands]
+    MS --> MSD[market_skill_demand]
+  end
+  subgraph matching ["Matching"]
+    M[matches]
+  end
+  subgraph tailoring ["Tailored CV"]
+    TC[tailored_cvs] --> TS[tailored_sentences] --> SE[sentence_evidence]
+    TC --> TA[tailored_attachments]
+  end
+  subgraph apply ["Applications & mail"]
+    AP[applications] --> MM[mail_messages]
+    AP --> RD[reply_drafts]
+    AP --> AO[application_outcomes]
+  end
+  subgraph ops ["Feedback & operations"]
+    FB[ai_feedback]
+    T[tasks]
+    AC[ai_calls]
+    N[notifications]
+    AUD[audit_logs]
+  end
+
+  U --> CV
+  CV --> M
+  JP --> M
+  CV --> TC
+  JP --> TC
+  TC --> AP
+  SE -.-> CF
+  SE -.-> SI
+  SE -.-> JR
+  CFS --> SK
+  JR --> SK
+```
+
+### 3.2 Entity-relationship diagram
+
+```mermaid
+erDiagram
+    app_users ||--o| mailbox_connections : connects
+    app_users ||--|| automation_settings : configures
+    app_users ||--o{ automation_excluded_companies : excludes
+    companies ||--o{ automation_excluded_companies : excluded
+    app_users ||--o{ cvs : owns
+    app_users ||--o{ attachments : uploads
+    app_users ||--o{ applications : submits
+    app_users ||--o{ ai_feedback : gives
+    app_users ||--o{ notifications : receives
+    app_users ||--o{ tasks : requests
+    app_users ||--o{ audit_logs : performs
+
+    skills ||--o{ skill_aliases : known_as
+    skills ||--o{ skill_relations : from
+    skills ||--o{ skill_inferences : infers
+    courses ||--o{ course_skills : teaches
+    skills ||--o{ course_skills : taught_by
+
+    cvs ||--o{ cv_facts : has
+    cv_facts ||--o{ cv_fact_skills : shows
+    skills ||--o{ cv_fact_skills : shown_in
+    locations ||--o{ cvs : targets
+
+    job_sources ||--o{ job_postings : publishes
+    companies ||--o{ job_postings : posts
+    industries ||--o{ companies : groups
+    locations ||--o{ job_postings : located_in
+    job_postings ||--o{ job_requirements : requires
+    skills ||--o{ job_requirements : asked_for
+    job_postings ||--o{ jd_insights : explains
+
+    locations ||--o{ market_snapshots : for
+    market_snapshots ||--o{ market_monthly_postings : trend
+    market_snapshots ||--o{ market_location_shares : spread
+    market_snapshots ||--o{ market_salary_bands : salary
+    market_snapshots ||--o{ market_skill_demand : demand
+    skills ||--o{ market_skill_demand : demanded
+
+    cvs ||--o{ matches : scored
+    job_postings ||--o{ matches : scored
+
+    cvs ||--o{ tailored_cvs : tailored_from
+    job_postings ||--o{ tailored_cvs : tailored_for
+    tailored_cvs ||--o{ tailored_sentences : contains
+    tailored_sentences ||--o{ sentence_evidence : cites
+    cv_facts |o--o{ sentence_evidence : cited_fact
+    skill_inferences |o--o{ sentence_evidence : cited_inference
+    job_requirements |o--o{ sentence_evidence : cited_requirement
+    tailored_cvs ||--o{ tailored_attachments : attaches
+    attachments ||--o{ tailored_attachments : attached
+
+    job_postings ||--o{ applications : applied_to
+    tailored_cvs |o--o{ applications : used
+    applications ||--o{ mail_messages : thread
+    applications ||--o{ reply_drafts : drafts
+    mail_messages ||--o| reply_drafts : answers
+    applications ||--o| application_outcomes : results_in
+    tasks ||--o{ ai_calls : makes
+
+    app_users {
+        uuid id PK
+        citext email UK
+        user_role role
+        boolean is_active
+        timestamptz delete_requested_at
+    }
+    automation_settings {
+        uuid user_id PK
+        boolean enabled
+        automation_mode mode
+        smallint min_match_score
+        smallint daily_limit
+        smallint follow_up_after_days
+    }
+    skill_inferences {
+        uuid from_skill_id PK
+        uuid to_skill_id PK
+        smallint depth
+        uuid via_skill_id FK
+    }
+    cvs {
+        uuid id PK
+        uuid user_id FK
+        cv_source source
+        ai_status status
+        boolean is_primary
+        vector embedding
+    }
+    cv_facts {
+        uuid id PK
+        uuid cv_id FK
+        fact_kind kind
+        text body
+        numeric confidence
+        boolean needs_review
+    }
+    job_postings {
+        uuid id PK
+        uuid source_id FK
+        varchar external_id
+        uuid company_id FK
+        posting_status status
+        apply_channel apply_channel
+        text description
+        vector embedding
+    }
+    job_requirements {
+        uuid id PK
+        uuid posting_id FK
+        requirement_kind kind
+        uuid skill_id FK
+        integer quote_start
+        integer quote_end
+    }
+    matches {
+        uuid id PK
+        uuid cv_id FK
+        uuid posting_id FK
+        smallint score
+        interview_chance chance
+        numeric factor_skill
+        numeric factor_semantic
+    }
+    tailored_cvs {
+        uuid id PK
+        uuid cv_id FK
+        uuid posting_id FK
+        smallint version
+        ai_status status
+        boolean ats_passed
+        varchar prompt_version
+    }
+    tailored_sentences {
+        uuid id PK
+        uuid tailored_cv_id FK
+        text text
+        provenance provenance
+        boolean needs_review
+        sentence_state state
+    }
+    sentence_evidence {
+        uuid id PK
+        uuid sentence_id FK
+        evidence_type type
+        uuid fact_id FK
+        uuid requirement_id FK
+    }
+    applications {
+        uuid id PK
+        uuid user_id FK
+        uuid posting_id FK
+        uuid tailored_cv_id FK
+        application_mode mode
+        application_status status
+        interview_chance chance_at_apply
+    }
+    mail_messages {
+        uuid id PK
+        uuid application_id FK
+        message_direction direction
+        varchar provider_message_id UK
+        reply_class class
+        numeric class_confidence
+    }
+    reply_drafts {
+        uuid id PK
+        uuid inbound_message_id FK
+        draft_status status
+        uuid confirmed_by FK
+        timestamptz confirmed_at
+    }
+    tasks {
+        uuid id PK
+        task_type type
+        task_status status
+        timestamptz run_after
+        smallint attempts
+    }
+```
+
+### 3.3 Key rules
+
+Database tự giữ các luật quan trọng nhất:
+
+- Không nộp hai lần một job (BR-018) và không lưu trùng tin tuyển dụng (BR-003).
+- Điểm khớp 0–100, mỗi yếu tố 0–1 (BR-007).
+- Mỗi căn cứ của một câu trỏ đúng một fact, một dòng suy ra trong phả hệ kỹ năng, hoặc một yêu cầu JD (BR-008, BR-009).
+- Thư trả lời ở trạng thái `SENT` bắt buộc phải có người xác nhận và thời điểm xác nhận (BR-022).
+
+Khi kiểm thử, cả 10 thao tác sai đều bị từ chối.
+
+Bảng, enum, luật do ứng dụng giữ, và ánh xạ sang API: [Data model](docs/06-data-model.md).
+
+## 4. OpenAPI 3.0 Contract
+
+Hợp đồng REST giữa Web Frontend và Backend API được viết bằng OpenAPI 3.0.3: 53 thao tác, kiểm tra bằng `openapi-spec-validator`. Hợp đồng suy ra từ use case, danh sách màn hình và mô hình dữ liệu.
+
+| Group | Operations |
+|---|---|
+| Auth, Account, Mailbox | Đăng ký, đăng nhập, tài khoản, đổi mật khẩu, xóa tài khoản, kết nối Gmail/Outlook qua OAuth |
+| CVs, Attachments | Upload CV hoặc ảnh (AI đọc ở nền), tạo từ template thủ công hoặc AI, sửa fact, PDF, chứng chỉ |
+| Market | Phân tích CV so với thị trường: nhu cầu, lương, skill gaps, lộ trình |
+| Jobs, Tailored CVs | Job theo khả năng đậu phỏng vấn, phân tích JD có trích dẫn, CV đã tối ưu với nguồn gốc và căn cứ từng câu, sửa, hoàn tác, duyệt, xem trước |
+| Applications | Nộp tay, theo dõi hồ sơ, chuỗi thư, sửa nhãn AI, thư trả lời và **xác nhận gửi** |
+| Automation | Điều kiện tự động, trạng thái quy trình 8 bước, nhật ký |
+| Dashboard, Feedback, Notifications, Lookups | Tổng quan, phản hồi kết quả AI, thông báo, danh mục |
+| Admin | Nguồn job, người dùng, chất lượng AI, trọng số matching |
+
+Quy ước chính:
+
+- Base path là `/api/v1`, xác thực bằng JWT, lỗi trả về dạng `problem+json`.
+- Mỗi thao tác khai báo vai trò được gọi trong `x-roles`.
+- Việc AI chạy nền: thao tác trả `202`, còn tài nguyên mang trạng thái `PENDING` / `READY` / `NEEDS_REVIEW` / `FAILED`.
+- Thư trả lời nhà tuyển dụng chỉ được gửi qua `confirmReplyDraft`.
+
+- Contract: [docs/api/openapi.yaml](docs/api/openapi.yaml)
+- Quy ước, vai trò từng thao tác, ánh xạ màn hình → API: [API documentation](docs/api/README.md)
+
+## 5. C4 Architecture
 
 README này trình bày C1–C3. Trách nhiệm từng phần, luật kiến trúc và danh mục thành phần nằm trong [thư mục kiến trúc](docs/architecture/c4/README.md).
 
@@ -695,7 +996,7 @@ flowchart LR
     skills["skills"]
     rel["skill_relations<br/><i>cha–con · tên gọi khác</i>"]
     inf["skill_inferences<br/><i>tính sẵn: A suy ra B, độ sâu ≤ 2</i>"]
-    jobs["jobs<br/><i>JD · embedding</i>"]
+    jobs["job_postings<br/><i>JD · embedding</i>"]
     req["job_requirements<br/><i>bắt buộc · nên có · đoạn trích</i>"]
     tcv["tailored_cvs<br/><i>bản CV theo job · trạng thái</i>"]
     sen["tailored_sentences<br/><i>ORIGINAL · REWRITTEN · INFERRED</i>"]
@@ -728,34 +1029,538 @@ Cách trả lời từng câu hỏi của AI, ví dụ job Backend tại Công t
 
 Tài liệu đầy đủ: [C4 Architecture](docs/architecture/c4/README.md).
 
+## 6. Frontend and Backend Folder Structures
+
+Frontend dùng Next.js (App Router) + React + TypeScript. Backend dùng Python + FastAPI, chia theo module; Backend API và Automation Worker chung một codebase. Code AI nằm trong package riêng `acaj_ai` (`src/ai/`), có eval chạy được từ terminal.
+
+### 6.1 Repository layout
+
+```text
+auto_apply_jobs/
+├── src/
+│   ├── frontend/                 # Next.js (Web Frontend)
+│   ├── backend/                  # FastAPI API + Automation Worker, one codebase
+│   └── ai/                       # acaj_ai: masking, OCR, extraction, tailoring, grounding, classification, evals
+├── docs/
+│   ├── api/                      # openapi.yaml + API documentation
+│   ├── architecture/             # C4 (c4/) and AI pipeline
+│   ├── database/                 # acaj.dbml + checks.sql
+│   ├── requirements/             # Business rules, non-functional requirements
+│   ├── images/                   # UI screenshots used in the README
+│   ├── 01-scope.md … 08-acceptance-criteria.md
+│   └── mindmap.png
+├── docker-compose.yml            # postgres (pgvector), minio (object storage), api, worker, frontend
+├── .gitignore                    # Ignores .env files, keeps .env.example
+└── README.md
+```
+
+### 6.2 Target Next.js structure
+
+```text
+src/frontend/
+├── app/                          # App Router: one route per screen in the IA
+│   ├── (public)/
+│   │   ├── login/                # SCR-01
+│   │   └── register/             # SCR-02
+│   ├── (workspace)/              # Shell (top navigation + notifications), requires login
+│   │   ├── layout.tsx
+│   │   ├── dashboard/            # SCR-03
+│   │   ├── auto-apply/           # SCR-42: upload CV, 8-step pipeline, conditions, activity
+│   │   ├── cv/                   # SCR-10
+│   │   │   ├── upload/           # SCR-11: AI extraction review
+│   │   │   ├── new/              # SCR-12: template, manual or AI
+│   │   │   └── [cvId]/           # SCR-13
+│   │   ├── insights/             # SCR-20: demand, salary, skill gaps, roadmap
+│   │   ├── jobs/                 # SCR-30
+│   │   │   └── [jobId]/          # SCR-31
+│   │   │       ├── cv/           # SCR-32: tailored CV, provenance, evidence
+│   │   │       └── preview/      # SCR-33: PDF sent to the recruiter, ATS checks
+│   │   ├── applications/         # SCR-40
+│   │   │   └── [applicationId]/  # SCR-41: thread, AI label, reply draft, confirmation
+│   │   ├── account/              # SCR-50: profile, security, mailbox
+│   │   └── admin/                # Admin only
+│   │       ├── sources/          # SCR-60
+│   │       ├── users/            # SCR-61
+│   │       └── ai/               # SCR-62: quality, cost, matching weights
+│   ├── forbidden/                # SCR-90
+│   ├── not-found.tsx             # SCR-91
+│   └── providers.tsx             # TanStack Query, theme, i18n (vi, en)
+├── features/                     # One folder per feature: components/, hooks/, api.ts
+│   ├── auth/  account/  dashboard/  automation/  cv/  insights/
+│   ├── jobs/  tailoring/  applications/  feedback/  notifications/  admin/
+├── components/
+│   ├── ui/                       # shadcn/ui primitives
+│   ├── ai/                       # Shared AI states: AiStatusBadge, ProvenanceMark, EvidencePopover, FeedbackButtons
+│   └── cv-sheet/                 # CV paper rendering (Noto Serif), shared by SCR-11, SCR-32, SCR-33
+├── lib/
+│   ├── api-client.ts             # fetch wrapper: JWT, problem+json, 401 → login, 403 → forbidden
+│   ├── api-types.ts              # Generated from docs/api/openapi.yaml (openapi-typescript)
+│   ├── poll.ts                   # Polls an AI resource until READY / NEEDS_REVIEW / FAILED
+│   └── format.ts                 # Dates, salary, time zone
+├── messages/                     # vi.json, en.json
+├── proxy.ts                      # Login and role redirects
+├── tests/                        # Vitest + Testing Library
+├── .env.example
+└── package.json                  # Tailwind CSS, shadcn/ui, react-hook-form + zod, TanStack Query/Table
+```
+
+`app/ route → feature component → feature hook → feature api.ts → api-client → REST API`
+
+### 6.3 Target FastAPI modular structure
+
+```text
+src/backend/
+├── app/
+│   ├── main.py                   # FastAPI app (Backend API)
+│   ├── worker.py                 # Automation Worker entry: scheduler + task loop
+│   ├── api_router.py             # Mounts every module router under /api/v1
+│   ├── core/
+│   │   ├── config.py             # pydantic-settings
+│   │   ├── database.py           # SQLAlchemy engine, session
+│   │   ├── security.py           # Password hashing, JWT
+│   │   ├── crypto.py             # Encrypts mailbox tokens (NFR-SEC-006)
+│   │   ├── storage.py            # Object storage client, signed links
+│   │   ├── container.py          # Binds interfaces to implementations (DI)
+│   │   ├── deps.py               # current_user, require_role, ownership helpers (BR-001)
+│   │   └── errors.py             # problem+json mapping
+│   ├── modules/
+│   │   └── <module>/
+│   │       ├── router.py         # Endpoints of this module (API only)
+│   │       ├── service.py        # Business logic; depends on repository interfaces
+│   │       ├── repository.py     # Protocol + SQLAlchemy implementation
+│   │       ├── models.py         # SQLAlchemy models
+│   │       ├── schemas.py        # Pydantic request/response, match openapi.yaml
+│   │       └── tasks.py          # Worker handlers for this module's task types (if any)
+│   ├── integrations/
+│   │   ├── sources/              # One collector per job source: topcv.py, linkedin.py, company_site.py
+│   │   ├── submit/               # Form submission (Playwright) and email submission
+│   │   └── mail/                 # Gmail and Outlook clients over OAuth
+│   └── tasks/
+│       ├── runner.py             # Claims tasks with FOR UPDATE SKIP LOCKED, retries, quotas
+│       └── schedule.py           # Periodic tasks: COLLECT_JOBS, COMPUTE_MARKET, POLL_INBOX, SEND_FOLLOW_UP
+├── tests/
+│   ├── fakes/                    # In-memory repositories, stub LLM, fake mail and sources
+│   └── modules/
+├── alembic/                      # Migrations; the first one comes from docs/database (DBML → SQL + checks.sql)
+├── .env.example
+├── requirements.txt
+├── requirements-dev.txt          # + pytest, ruff, mypy
+└── Dockerfile                    # One image, run as `api` or `worker`
+```
+
+```text
+api_router → module/router → module/service → module/repository (interface) → PostgreSQL
+worker     → tasks/runner  → module/tasks   → module/service → acaj_ai / integrations / repository
+acaj_ai    → LLMClient (interface) → provider client → LLM provider
+```
+
+Module gọi nhau chỉ qua service. Điểm khớp được tính trước khi `acaj_ai` chạy, và chỉ `applications.service` gửi thư trả lời đã được xác nhận.
+
+### 6.4 AI package `acaj_ai`
+
+```text
+src/ai/
+├── acaj_ai/          # masking, ocr, extraction/, skills, embedding, tailoring/, replies/, llm/, settings, cli
+├── evals/            # datasets (JSONL with gold labels), thresholds.toml, reports/
+├── tests/
+└── pyproject.toml    # command: acaj-ai eval | parse | tailor | classify
+```
+
+Backend truyền dữ liệu vào và lưu kết quả đã kiểm chứng; `acaj_ai` không truy cập database. Bảng module, luật phụ thuộc và biến môi trường: [Target Folder Structure](docs/07-folder-structure.md). Ranh giới, prompt, che dữ liệu và eval của `acaj_ai`: [AI package](docs/architecture/ai-package.md).
+
+## 7. Detailed Class and Sequence Design
+
+Thiết kế chi tiết suy ra từ các thành phần C4 (mục 5), database và hợp đồng OpenAPI (mục 3, 4), và cấu trúc module (mục 6). Tên lớp là lớp Python trong các module FastAPI và package `acaj_ai`; đây là thiết kế mục tiêu.
+
+### 7.1 C4 Level 4 — Code collaboration
+
+Hai tính năng cốt lõi:
+
+- **Matching:** chỉ dùng luật, không gọi LLM.
+- **Tối ưu CV cho từng job:** dùng LLM, có kiểm chứng căn cứ.
+
+Cả hai chạy trong Automation Worker; người dùng đọc kết quả qua API.
+
+#### L4.1 Matching
+
+```mermaid
+flowchart TB
+    runner["TaskRunner<br/><i>tasks/runner.py</i><br/>claims SCORE_MATCHES"]
+    handler["score_matches_task<br/><i>matching/tasks.py</i>"]
+    svc["MatchingService<br/><i>matching/service.py</i><br/>prefilter, score, persist"]
+    pre["CandidateFinder<br/><i>matching/prefilter.py</i><br/>pgvector top-300 + MUST overlap"]
+    cov["SkillCoverage<br/><i>matching/coverage.py</i><br/>credit per requirement"]
+    tax["TaxonomyService<br/><i>taxonomy/service.py</i><br/>skill_inferences lookup"]
+    scorer["MatchScorer<br/><i>matching/scorer.py</i><br/>pure function: 4 factors → score"]
+    chance["ChanceRule<br/><i>matching/chance.py</i><br/>thresholds + downgrades"]
+    settings["SettingsRepository<br/>weights, thresholds, version"]
+    repo["MatchRepository<br/>upsert matches"]
+    next["TaskQueue.enqueue(OPTIMIZE_CV)<br/>for HIGH / MEDIUM jobs"]
+
+    runner --> handler --> svc
+    svc --> pre
+    svc --> cov --> tax
+    svc --> scorer
+    svc --> chance
+    svc --> settings
+    svc --> repo
+    svc --> next
+
+    style scorer fill:#1168bd,color:#fff
+    style chance fill:#1168bd,color:#fff
+    style cov fill:#1168bd,color:#fff
+```
+
+#### L4.2 CV tailoring
+
+```mermaid
+flowchart TB
+    runner["TaskRunner<br/>claims OPTIMIZE_CV"]
+    handler["optimize_cv_task<br/><i>tailoring/tasks.py</i>"]
+    svc["TailoringService<br/><i>tailoring/service.py</i>"]
+    builder["EvidenceBuilder<br/><i>tailoring/evidence.py</i><br/>facts + requirements + inferences"]
+    quota["UsageLimiter<br/><i>tasks/quota.py</i><br/>daily token quota"]
+    tailor["acaj_ai.tailor_cv"]
+    mask["PiiMasker"]
+    gen["CvTailor<br/>LLMClient + prompt vN"]
+    schema["OutputSchemaValidator"]
+    ground["GroundingValidator"]
+    ats["AtsChecker"]
+    repo["TailoredCvRepository<br/>tailored_cvs, sentences, evidence"]
+    usage["AiCallRepository<br/>ai_calls"]
+    pdf["PdfRenderer<br/>store pdf_key"]
+    notify["NotificationService<br/>when NEEDS_REVIEW"]
+
+    runner --> handler --> svc
+    svc --> quota
+    svc --> builder
+    svc --> tailor
+    tailor --> mask --> gen --> schema --> ground --> ats
+    svc --> repo
+    svc --> usage
+    svc --> pdf
+    svc --> notify
+
+    style tailor fill:#7b3fbf,color:#fff
+    style gen fill:#7b3fbf,color:#fff
+    style mask fill:#2e7d32,color:#fff
+    style schema fill:#2e7d32,color:#fff
+    style ground fill:#2e7d32,color:#fff
+```
+
+Nguồn: [C4 Level 4 — Code](docs/architecture/c4/04-code.md)
+
+### 7.2 Core class diagrams
+
+#### 1. Matching
+
+```mermaid
+classDiagram
+    direction LR
+    class MatchingService {
+        -CandidateFinder finder
+        -SkillCoverage coverage
+        -MatchScorer scorer
+        -ChanceRule chance
+        -MatchRepository matches
+        -SettingsRepository settings
+        -TaskQueue tasks
+        +score_cv(cv_id) list~MatchResult~
+    }
+    class CandidateFinder {
+        -JobPostingRepository postings
+        +find(cv) list~PostingRef~
+    }
+    class SkillCoverage {
+        -TaxonomyService taxonomy
+        +credits(cv_skills, requirements) list~Credit~
+        +skill_factor(credits) float
+        +missing_must(credits) list~str~
+    }
+    class TaxonomyService {
+        -SkillRepository skills
+        +credit_of(candidate_skills, skill_id) float
+        +recompute_inferences(max_depth) int
+    }
+    class MatchScorer {
+        <<pure>>
+        +factors(cv, posting, credits) Factors
+        +score(factors, weights, gate_cap) int
+    }
+    class ChanceRule {
+        <<pure>>
+        +level(score, missing_must, competition, thresholds) InterviewChance
+    }
+    class Factors {
+        +float skill
+        +float semantic
+        +float experience
+        +float location
+    }
+    class MatchResult {
+        +UUID cv_id
+        +UUID posting_id
+        +int score
+        +InterviewChance chance
+        +Factors factors
+        +int weights_version
+    }
+    class MatchRepository {
+        <<interface>>
+        +upsert(results) None
+        +list_for_cv(cv_id, min_chance, page) Page~MatchResult~
+    }
+    class InterviewChance {
+        <<enumeration>>
+        HIGH
+        MEDIUM
+        LOW
+    }
+
+    MatchingService --> CandidateFinder
+    MatchingService --> SkillCoverage
+    MatchingService --> MatchScorer
+    MatchingService --> ChanceRule
+    MatchingService --> MatchRepository
+    SkillCoverage --> TaxonomyService
+    MatchScorer ..> Factors
+    MatchingService ..> MatchResult
+    MatchResult --> InterviewChance
+```
+
+#### 2. CV tailoring
+
+```mermaid
+classDiagram
+    direction LR
+    class TailoringService {
+        -EvidenceBuilder evidence
+        -UsageLimiter quota
+        -TailoredCvRepository tailored
+        -AiCallRepository calls
+        -PdfRenderer pdf
+        +optimize(cv_id, posting_id) TailoredCvRef
+        +update_sentence(user_id, sentence_id, action, text) TailoredSentence
+        +approve(user_id, tailored_cv_id) None
+    }
+    class EvidenceBuilder {
+        -CvRepository cvs
+        -JobPostingRepository postings
+        -TaxonomyService taxonomy
+        +build(cv_id, posting_id) EvidenceBundle
+    }
+    class EvidenceBundle {
+        +list~Fact~ facts
+        +list~Requirement~ requirements
+        +list~Inference~ inferences
+        +TargetJob target
+        +ids() set~str~
+    }
+    class CvTailor {
+        -LLMClient client
+        -str prompt_version
+        +draft(bundle) RawDraft
+    }
+    class GroundingValidator {
+        +validate(raw, bundle) TailoredDraft
+        -check_ids(sentence, bundle) list~str~
+        -hard_entities_supported(sentence, cited) bool
+        -support_ratio(sentence, cited) float
+    }
+    class AtsChecker {
+        <<pure>>
+        +check(draft, requirements) AtsReport
+    }
+    class PiiMasker {
+        +mask(text) MaskedText
+        +restore(text, mapping) str
+    }
+    class OutputSchemaValidator {
+        +parse(raw_json, schema) dict
+    }
+    class LLMClient {
+        <<interface>>
+        +complete(prompt, schema) LlmResponse
+        +embed(texts) list~Vector~
+    }
+    class TailoredDraft {
+        +list~DraftSentence~ sentences
+        +list~DroppedSentence~ dropped
+        +str cover_letter
+        +AtsReport ats
+        +status() AiStatus
+    }
+    class DraftSentence {
+        +str section
+        +str text
+        +Provenance provenance
+        +bool needs_review
+        +list~str~ evidence_ids
+    }
+    class Provenance {
+        <<enumeration>>
+        ORIGINAL
+        REWRITTEN
+        INFERRED
+    }
+
+    TailoringService --> EvidenceBuilder
+    TailoringService ..> CvTailor : via acaj_ai.tailor_cv
+    EvidenceBuilder ..> EvidenceBundle
+    CvTailor --> LLMClient
+    CvTailor --> PiiMasker
+    CvTailor --> OutputSchemaValidator
+    CvTailor ..> GroundingValidator
+    GroundingValidator ..> TailoredDraft
+    TailoredDraft --> DraftSentence
+    DraftSentence --> Provenance
+    GroundingValidator ..> AtsChecker
+```
+
+#### 3. Automation and replies
+
+```mermaid
+classDiagram
+    direction LR
+    class AutomationService {
+        -AutomationSettingsRepository settings
+        -MatchRepository matches
+        -ApplicationService applications
+        +run_for_user(user_id) RunSummary
+        +pipeline_status(user_id) list~StepState~
+    }
+    class ApplicationService {
+        -ApplicationRepository applications
+        -SubmitterRegistry submitters
+        -MailClientFactory mail
+        +submit(user_id, posting_id, mode) Application
+        +send_follow_up(application_id) None
+        +record_inbound(message) Application
+        +confirm_reply(user_id, application_id) ReplyDraft
+        +send_reply(draft_id) None
+    }
+    class Submitter {
+        <<interface>>
+        +submit(posting, pdf, cover_letter, attachments) SubmitResult
+    }
+    class FormSubmitter {
+        +submit(posting, pdf, cover_letter, attachments) SubmitResult
+    }
+    class EmailSubmitter {
+        +submit(posting, pdf, cover_letter, attachments) SubmitResult
+    }
+    class MailClient {
+        <<interface>>
+        +send(to, subject, body, attachments, thread_id) str
+        +fetch_since(cursor) list~InboundMail~
+    }
+    class InboxWatcher {
+        -MailClientFactory mail
+        -ReplyClassifier classifier
+        -ReplyDrafter drafter
+        +poll(user_id) int
+    }
+    class ReplyClassifier {
+        +classify(message, min_confidence) ReplyLabel
+    }
+    class ReplyDrafter {
+        +draft(message, context) ReplyText
+    }
+    class ReplyDraft {
+        +UUID id
+        +DraftStatus status
+        +UUID confirmed_by
+        +datetime confirmed_at
+        +can_send() bool
+    }
+    class SubmitResult {
+        +bool submitted
+        +str manual_reason
+    }
+
+    AutomationService --> ApplicationService
+    ApplicationService --> Submitter
+    Submitter <|.. FormSubmitter
+    Submitter <|.. EmailSubmitter
+    ApplicationService --> MailClient
+    InboxWatcher --> MailClient
+    InboxWatcher --> ReplyClassifier
+    InboxWatcher --> ReplyDrafter
+    InboxWatcher ..> ApplicationService : record_inbound
+    ApplicationService ..> ReplyDraft
+    Submitter ..> SubmitResult
+```
+
+Ranh giới kiểu dữ liệu giữa các tầng: [Class diagrams](docs/architecture/uml/01-class-diagrams.md).
+
+### 7.3 Sequence diagrams
+
+Bảy luồng chạy, mỗi luồng nối use case và thao tác OpenAPI với router, service, `acaj_ai`, repository, database và các nhánh lỗi:
+
+| # | Flow | Trigger |
+|---|---|---|
+| 1 | Nạp CV và AI đọc CV | `POST /cvs` |
+| 2 | Chấm điểm job | Việc `SCORE_MATCHES` |
+| 3 | Tối ưu CV cho một job (che dữ liệu, LLM, kiểm chứng, ATS) | Việc `OPTIMIZE_CV` |
+| 4 | Tự động nộp hồ sơ (hạn mức, nộp trùng, CAPTCHA → nộp tay) | Việc `SUBMIT_APPLICATION` |
+| 5 | Đọc thư phản hồi và phân loại | Việc `POLL_INBOX` |
+| 6 | Xác nhận và gửi thư trả lời | `POST /applications/{id}/reply-draft/confirmation` |
+| 7 | Hoàn tác một câu đã tối ưu | `PATCH /tailored-cvs/{id}/sentences/{sid}` |
+
+[Sequence diagrams](docs/architecture/uml/02-sequence-diagrams.md) · [Detailed UML overview](docs/architecture/uml/README.md)
+
+### 7.4 Algorithms — skill taxonomy, matching, interview chance
+
+Các thuật toán đều là luật và thống kê, giải thích được; LLM chỉ chạy sau khi chúng xong.
+
+| Algorithm | Rule |
+|---|---|
+| Phả hệ kỹ năng | Có kỹ năng con thì suy ra kỹ năng cha, tối đa 2 bậc; mức tính 1,0 (có) · 0,9 (bậc 1) · 0,7 (bậc 2); tính sẵn vào `skill_inferences` |
+| Điểm khớp | Lọc 300 job gần nghĩa bằng pgvector; 4 yếu tố trong [0, 1]; điểm = trung bình có trọng số 40/20/25/15; yếu tố kỹ năng bằng 0 thì tối đa 39 |
+| Khả năng đậu phỏng vấn | Cao ≥ 75, Trung bình ≥ 50; hạ một mức nếu thiếu yêu cầu bắt buộc, hạ thêm nếu cạnh tranh cao; hiệu chỉnh hằng tháng theo tỉ lệ được mời phỏng vấn thật |
+| Kiểm chứng câu | ID căn cứ phải có trong bundle; câu có thực thể không có căn cứ bị bỏ; độ hỗ trợ dưới 0,3 thì cần xem lại |
+| Tự động nộp | Điểm ≥ ngưỡng, chance khác Thấp, CV sẵn sàng và đạt ATS, xếp theo chance rồi điểm, dừng ở hạn mức ngày |
+
+Ví dụ với dữ liệu của prototype, đã chạy bằng script tham chiếu:
+
+- Job Backend của Công ty ABC: các yếu tố 0,87 · 0,80 · 0,80 · 1 → **86 điểm, Cao**.
+- Junior API Engineer: **79 điểm** nhưng thiếu Docker bắt buộc → **Trung bình**.
+- DevOps: điểm thô 46, bị chặn ở **39 điểm** → **Thấp**.
+
+Công thức, SQL, trường hợp biên và cách chỉnh: [Algorithms](docs/09-algorithms.md).
+
 ## Documentation
 
-- **Requirements:** [Scope](docs/01-scope.md), [Features](docs/02-features.md), [INVEST backlog](docs/05-invest-requirements.md), [Acceptance criteria](docs/08-acceptance-criteria.md).
+- **Research and requirements:** [Scope](docs/01-scope.md), [Features](docs/02-features.md), [Acceptance criteria](docs/08-acceptance-criteria.md).
 - **Requirements catalogs:** [Business rules](docs/requirements/business-rules.md), [Non-functional requirements](docs/requirements/non-functional-requirements.md).
-- **Actors and use cases:** [Actors, roles, and use cases](docs/03-use-cases.md).
-- **Architecture:** [C4 model](docs/architecture/c4/README.md), [AI pipeline and data for AI](docs/architecture/ai-pipeline.md).
-- **UI/UX:** [Information architecture](docs/04-information-architecture.md), [UI prototype](https://claude.ai/artifact/Jk4AtZzuxHpgVd6RqKtTSo), ảnh màn hình trong `docs/images/`.
+- **Use cases and user stories:** [Actors, roles, and use cases](docs/03-use-cases.md), [INVEST backlog](docs/05-invest-requirements.md).
+- **Information architecture:** [Information architecture](docs/04-information-architecture.md).
+- **UI/UX:** [UI prototype](https://claude.ai/artifact/Jk4AtZzuxHpgVd6RqKtTSo), ảnh màn hình trong `docs/images/`.
+- **Database:** [Data model](docs/06-data-model.md), [acaj.dbml](docs/database/acaj.dbml), [checks.sql](docs/database/checks.sql).
+- **API contract:** [OpenAPI 3.0](docs/api/openapi.yaml), [API documentation](docs/api/README.md).
+- **Architecture:** [C4 model](docs/architecture/c4/README.md), [AI pipeline and data for AI](docs/architecture/ai-pipeline.md), [AI package](docs/architecture/ai-package.md).
+- **Detailed design:** [Algorithms](docs/09-algorithms.md), [C4 Level 4](docs/architecture/c4/04-code.md), [Class diagrams](docs/architecture/uml/01-class-diagrams.md), [Sequence diagrams](docs/architecture/uml/02-sequence-diagrams.md).
 
-Các phần sau (Database/OpenAPI, cấu trúc thư mục, class/sequence) sẽ được bổ sung ở các phần tiếp theo.
+- **Folder structure:** [Next.js, FastAPI modules, acaj_ai](docs/07-folder-structure.md).
 
 ## Project Progress
 
 - [x] Define scope, goals, and user roles
 - [x] Write the feature list and use cases
 - [x] Write user stories following INVEST
-- [x] Design the information architecture and screen permissions
-- [x] Design the screen hierarchy, task flows, and UI states (including AI states)
 - [x] Write acceptance criteria and business rules
 - [x] Write non-functional requirements
 - [x] Define AI boundaries, grounding rules, and AI quality targets
-- [ ] Design the matching algorithm and skill taxonomy
+- [x] Design the information architecture and screen permissions
+- [x] Design the screen hierarchy, task flows, and UI states (including AI states)
+- [x] Build the UI prototype for the Candidate role
+- [x] Build the UI prototype for the Admin role
+- [x] Design the database schema in DBML and the ER diagram in Mermaid
+- [x] Write the API documentation in OpenAPI 3.0
 - [x] Design the C4 System Context, Container, and Component views
 - [x] Design the AI pipeline and the data it uses (no knowledge graph, see decision)
-- [ ] Design the AI package in detail (prompts, validators, evals)
-- [ ] Design the database schema and data relationships
-- [ ] Write the API documentation in OpenAPI 3.0
-- [ ] Design the frontend and backend folder structure
-- [ ] Design class diagrams and sequence diagrams
-- [x] Build the UI prototype for the Candidate role
-- [ ] Build the UI prototype for the Admin role
+- [x] Design the matching algorithm and skill taxonomy
+- [x] Design the AI package in detail (prompts, validators, evals)
+- [x] Design the frontend and backend folder structure
+- [x] Design class diagrams and sequence diagrams
 - [ ] Build the backend and connect the frontend to the API
