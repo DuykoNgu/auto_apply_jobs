@@ -15,7 +15,7 @@ Nhiều người đang thất nghiệp, hoặc không biết mình đang đứng
 ACAJ giải quyết theo từng bước, và **tự động hóa là điểm cốt lõi**: phân tích, sửa CV, ứng tuyển, nhắc mail đều chạy tự động theo điều kiện người dùng đặt, mọi thay đổi được lưu để xem lại và hoàn tác.
 
 1. **Hiểu mình đang ở đâu** — Người dùng tải CV lên (hoặc chụp ảnh CV giấy). ACAJ đối chiếu thị trường: nhu cầu và độ cạnh tranh của vị trí, mức lương phổ biến, kỹ năng còn thiếu kèm mức ưu tiên.
-2. **Biết sửa CV thế nào cho từng job** — ACAJ gợi ý job kèm điểm khớp và khả năng trúng tuyển, phân tích JD để chỉ ra điều JD nhấn mạnh và CV còn thiếu, rồi **tự động sửa** CV riêng cho job đó, người dùng không phải chỉnh tay: kỹ năng, từ khóa, summary, dự án liên quan, chuẩn ATS, cover letter.
+2. **Biết sửa CV thế nào cho từng job** — ACAJ gợi ý job kèm điểm khớp và khả năng đậu phỏng vấn, phân tích JD để chỉ ra điều JD nhấn mạnh và CV còn thiếu, rồi **tự động sửa** CV riêng cho job đó, người dùng không phải chỉnh tay: kỹ năng, từ khóa, summary, dự án liên quan, chuẩn ATS, cover letter.
 3. **Ứng tuyển có kiểm soát** — Người dùng bật ứng tuyển hàng loạt theo điều kiện tự đặt (điểm khớp tối thiểu, hạn mức mỗi ngày). ACAJ gửi hồ sơ, theo dõi phản hồi, nhắc nhà tuyển dụng sau 5 ngày chưa trả lời.
 4. **Không lỡ cơ hội** — Khi có email mời phỏng vấn hoặc trúng tuyển, ACAJ báo ngay, soạn sẵn thư xác nhận và chỉ gửi khi người dùng đồng ý.
 
@@ -105,7 +105,7 @@ Khi LLM lỗi hoặc không truy cập được, mọi phần do luật tính v�
 - Đăng ký, đăng nhập, quản lý hồ sơ cá nhân.
 - Nhập CV từ PDF/DOCX/ảnh, hoặc tạo CV từ template (thủ công hoặc AI tạo từ thông tin người dùng cung cấp).
 - Phân tích CV so với thị trường: nhu cầu tuyển dụng, độ cạnh tranh, mức lương, skill gaps, lộ trình phát triển theo năm.
-- Thu thập JD từ TopCV, LinkedIn và trang công ty; AI phân tích JD; tính **matching score** có giải thích kèm khả năng trúng tuyển.
+- Thu thập JD từ TopCV, LinkedIn và trang công ty; AI phân tích JD; tính **matching score** có giải thích kèm khả năng đậu phỏng vấn.
 - **Tự động sửa CV** theo từng JD: thêm kỹ năng JD yêu cầu khi người dùng có kỹ năng đó hoặc kỹ năng liên quan theo phả hệ kỹ năng, chuẩn ATS, viết lại summary, nhấn mạnh dự án liên quan, tạo cover letter và đính kèm chứng chỉ; mọi câu có căn cứ và nhãn nguồn gốc.
 - Ứng tuyển thủ công và ứng tuyển hàng loạt tự động; tự gửi mail nhắc khi chưa có phản hồi; AI phân loại email phản hồi, soạn thư trả lời và thông báo cho người dùng.
 - Thu thập phản hồi của người dùng và kết quả ứng tuyển để đo và cải thiện chất lượng AI.
@@ -122,7 +122,7 @@ Hệ thống **không** bao gồm:
 - Nộp hồ sơ vào công ty mà người dùng đã loại trừ, hoặc vượt quá hạn mức gửi mỗi ngày đã cấu hình.
 - Vượt CAPTCHA hoặc cơ chế chống bot của trang tuyển dụng; job không nộp tự động được sẽ chuyển sang nộp thủ công.
 - Tự phỏng vấn thay ứng viên, luyện phỏng vấn, hay thương lượng lương.
-- Cam kết kết quả tuyển dụng; matching score và khả năng trúng tuyển chỉ là ước lượng.
+- Cam kết kết quả tuyển dụng; matching score và khả năng đậu phỏng vấn chỉ là ước lượng.
 - Ứng dụng di động riêng, đăng nhập mạng xã hội, thanh toán/gói trả phí.
 - Trở thành sàn việc làm: ACAJ không đăng tin tuyển dụng.
 
@@ -164,4 +164,4 @@ AI nằm trong một package riêng: nhận dữ liệu vào, trả kết quả 
 | Q5 | Tự động trả lời mail trúng tuyển có cần người dùng xác nhận? | Giả định: có (BR-022). |
 | Q6 | Phả hệ kỹ năng lấy từ đâu (tự xây hay dùng ESCO/O*NET) và ai bảo trì? | Xem BR-008. |
 | Q7 | Dùng LLM provider nào, và dữ liệu CV có được phép gửi ra ngoài lãnh thổ không? | Ảnh hưởng BR-015 và chi phí. |
-| Q8 | "Khả năng trúng tuyển" lấy dữ liệu thật từ đâu để hiệu chỉnh? | Giả định: từ kết quả ứng tuyển (feedback loop, BR-024). |
+| Q8 | "Khả năng đậu phỏng vấn" lấy dữ liệu thật từ đâu để hiệu chỉnh? | Giả định: từ kết quả ứng tuyển (feedback loop, BR-024). |

@@ -109,7 +109,7 @@ Tác nhân hệ thống *AI package* được gọi bởi Processor trong UC03�
 | Item | Content |
 |---|---|
 | Precondition | Ứng viên đã đăng nhập và có ít nhất một CV đã lưu. |
-| Main flow | 1. Ứng viên mở danh sách job. 2. Hệ thống hiển thị job theo matching score giảm dần, mỗi job có điểm khớp, khả năng trúng tuyển và lý do theo từng yếu tố (kỹ năng theo phả hệ, độ tương đồng ngữ nghĩa, kinh nghiệm/cấp độ, địa điểm/hình thức). Điểm do công thức tính, không do LLM. 3. Ứng viên mở một job để xem JD, phần khớp và phần còn thiếu. |
+| Main flow | 1. Ứng viên mở danh sách job. 2. Hệ thống hiển thị job theo khả năng đậu phỏng vấn (chỉ số chính), cùng mức thì theo điểm khớp; mỗi job có khả năng đậu phỏng vấn, điểm khớp và lý do theo từng yếu tố (kỹ năng theo phả hệ, độ tương đồng ngữ nghĩa, kinh nghiệm/cấp độ, địa điểm/hình thức). Điểm do công thức tính, không do LLM. 3. Ứng viên mở một job để xem JD, phần khớp và phần còn thiếu. |
 | Alternative flow | Chưa có CV → yêu cầu tải/tạo CV (UC03–UC06). Không có job phù hợp → gợi ý nới bộ lọc. |
 | Alternative flow (AI) | JD chưa được AI phân tích xong → job vẫn có điểm từ các yếu tố tính được, kèm ghi chú "đang phân tích JD". |
 | Postcondition | Không thay đổi dữ liệu. |

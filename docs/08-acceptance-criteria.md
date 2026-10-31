@@ -80,7 +80,7 @@ Mỗi tiêu chí quan sát được qua API, UI hoặc bộ eval. Phân quyền 
 
 ## AC-UC12 — Danh sách job và matching
 
-- Job sắp xếp theo matching score (0–100) giảm dần, kèm khả năng trúng tuyển (`HIGH/MEDIUM/LOW`) và giá trị từng yếu tố (BR-007).
+- Khả năng đậu phỏng vấn (`HIGH/MEDIUM/LOW`) là chỉ số chính hiển thị trên mỗi job; job sắp xếp theo chỉ số này, cùng mức thì theo matching score (0–100) giảm dần; kèm giá trị từng yếu tố (BR-007).
 - Cùng CV, cùng JD, cùng trọng số luôn cho cùng một điểm; LLM bị tắt thì điểm không đổi (BR-012).
 - Job có yếu tố kỹ năng bằng 0 không vượt quá 39 điểm (BR-007).
 - Bộ lọc theo vị trí, khu vực, lương, hình thức, điểm tối thiểu hoạt động đúng; phân trang.

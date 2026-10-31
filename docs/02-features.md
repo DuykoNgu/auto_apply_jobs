@@ -56,7 +56,7 @@ Phân tích CV đã lưu so với thị trường theo ngành nghề và vị tr
 
 - F04.1 Thu thập JD từ TopCV, LinkedIn và các nguồn tuyển dụng chính thống của công ty; chuẩn hóa và loại trùng.
 - F04.2 Phân tích JD bằng LLM: kỹ năng bắt buộc / nên có, cấp độ, từ khóa, điểm nổi bật, điểm yếu hoặc mơ hồ của JD. **Mỗi nhận định trỏ về đoạn JD làm căn cứ**; nhận định không có căn cứ bị loại.
-- F04.3 Matching score 0–100 do **công thức có trọng số** tính từ các yếu tố: kỹ năng (theo phả hệ), độ tương đồng ngữ nghĩa CV–JD (embedding), kinh nghiệm/cấp độ, địa điểm/hình thức. Hiển thị lý do theo từng yếu tố và **khả năng trúng tuyển**. LLM không tính và không sửa điểm.
+- F04.3 Matching score 0–100 do **công thức có trọng số** tính từ các yếu tố: kỹ năng (theo phả hệ), độ tương đồng ngữ nghĩa CV–JD (embedding), kinh nghiệm/cấp độ, địa điểm/hình thức. Hiển thị lý do theo từng yếu tố và **khả năng đậu phỏng vấn**. LLM không tính và không sửa điểm.
 - F04.4 Danh sách job với bộ lọc (vị trí, khu vực, lương, hình thức, điểm khớp).
 
 ## F05 CV Optimization per Job
@@ -88,6 +88,6 @@ Các tính năng:
 ## F07 AI Quality and Feedback
 
 - F07.1 Người dùng đánh giá kết quả AI: job gợi ý hữu ích / không hữu ích; chỉnh sửa CV giữ lại / hoàn tác; nhãn email đúng / sai.
-- F07.2 Ghi nhận kết quả thật của hồ sơ (có phản hồi, phỏng vấn, trúng tuyển) để đo độ chính xác của matching và hiệu chỉnh khả năng trúng tuyển.
+- F07.2 Ghi nhận kết quả thật của hồ sơ (có phản hồi, phỏng vấn, trúng tuyển) để đo độ chính xác của matching và hiệu chỉnh khả năng đậu phỏng vấn.
 - F07.3 Bộ eval offline cho từng tác vụ AI (trích xuất CV, trích xuất JD, grounding, phân loại email, chất lượng gợi ý job), chạy được bằng LLM giả lập trong CI và LLM thật khi đánh giá.
 - F07.4 Admin xem chỉ số chất lượng AI, tỉ lệ lỗi, độ trễ, token và chi phí; chỉnh trọng số matching dựa trên số liệu (không tự động đổi ngầm).

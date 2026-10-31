@@ -30,7 +30,7 @@ Mỗi requirement đủ nhỏ để cài đặt và kiểm thử độc lập. X
 | US09 | Là ứng viên, tôi muốn biết kỹ năng còn thiếu và mức ưu tiên để biết cần học gì. | Định hướng học | US07 | UC09 |
 | US10 | Là ứng viên, tôi muốn có lộ trình theo năm gồm khóa học, chứng chỉ, vị trí phù hợp, với gợi ý của AI được ghi rõ. | Kế hoạch dài hạn | US09 | UC10 |
 | US11 | Là hệ thống, tôi cần thu thập, chuẩn hóa và loại trùng JD từ TopCV, LinkedIn và trang công ty. | Có dữ liệu job | — | UC11 |
-| US12 | Là ứng viên, tôi muốn xem danh sách job kèm matching score có giải thích và khả năng trúng tuyển. | Chọn đúng job | US03 hoặc US05, US11 | UC12 |
+| US12 | Là ứng viên, tôi muốn xem danh sách job theo khả năng đậu phỏng vấn, kèm matching score có giải thích, để ưu tiên job có cơ hội cao nhất. | Chọn đúng job | US03 hoặc US05, US11 | UC12 |
 | US13 | Là ứng viên, tôi muốn xem AI phân tích JD (điểm nổi bật, điểm yếu), mỗi nhận định trỏ về đoạn JD, để biết cách trình bày CV. | Hiểu yêu cầu | US11 | UC13 |
 | US14 | Là ứng viên, tôi muốn CV được tự động sửa theo JD và chuẩn ATS, mọi câu đều có căn cứ từ CV của tôi, để vượt vòng lọc. | Tăng cơ hội | US12, US13 | UC14 |
 | US15 | Là ứng viên, tôi muốn summary và dự án được viết lại theo vị trí. | CV phù hợp từng job | US14 | UC15 |
