@@ -1,0 +1,26 @@
+@import "tailwindcss";
+@import "../theme.css";
+
+@theme {
+  --animate-fade-in: fade-in 240ms var(--ease-out);
+  --animate-pop: pop 240ms var(--ease-out);
+  --animate-pop-fast: pop 160ms var(--ease-out);
+  --animate-skeleton: skeleton 1.2s linear infinite;
+  --animate-run: run 1.6s linear infinite;
+  --animate-breathe: breathe 4s ease-in-out infinite;
+  --animate-cv-scan: cv-scan 1.5s cubic-bezier(.42, 0, .58, 1) infinite;
+
+  @keyframes fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  @keyframes pop { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  @keyframes skeleton { to { background-position: -200% 0; } }
+  @keyframes run { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+  @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+  @keyframes cv-scan { from { top: -160px; } to { top: calc(100% + 12px); } }
+}
+
+@layer base {
+  /* the app scrolls inside its panes, never the document */
+  html, body { height: 100%; overflow: hidden; }
+  body { font-size: 16px; line-height: 1.55; letter-spacing: -.005em; color: var(--color-ink); background: var(--color-bg); -webkit-font-smoothing: antialiased; }
+  kbd { font-family: var(--font-sans); font-size: 12px; padding: 1px 6px; border: 1px solid var(--color-rule-2); border-bottom-width: 2px; border-radius: 4px; color: var(--color-ink-2); background: var(--color-paper); }
+}

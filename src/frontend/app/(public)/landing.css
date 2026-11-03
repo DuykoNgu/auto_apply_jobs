@@ -1,0 +1,16 @@
+@import "tailwindcss";
+@import "../theme.css";
+
+/* Landing motion. Used through arbitrary animate-[…] utilities with per-element delays. */
+@keyframes fade { to { opacity: 1; } }
+@keyframes up { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+@keyframes ch { to { opacity: 1; transform: none; } }
+@keyframes grow { to { transform: scaleX(1); } }
+@keyframes rise { to { transform: scaleY(1); } }
+@keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: .42; } }
+
+@layer base {
+  body { font-size: 17px; line-height: 1.65; color: var(--color-ink); background: var(--color-bg); -webkit-font-smoothing: antialiased; }
+  :focus-visible { outline-offset: 3px; }
+  @media (max-width: 620px) { body { font-size: 16px; } }
+}
