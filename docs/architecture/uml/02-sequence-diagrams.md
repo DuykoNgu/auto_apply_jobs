@@ -2,7 +2,7 @@
 
 > **Status:** Target design
 
-Bảy luồng chạy chính, mỗi luồng nối use case và thao tác OpenAPI với router, service, `acaj_ai`, repository, database và các nhánh lỗi. API chỉ ghi việc vào bảng `tasks`; worker lấy việc bằng `FOR UPDATE SKIP LOCKED` ([data model](../../06-data-model.md#task-table)).
+Tám luồng chạy chính, mỗi luồng nối use case và thao tác OpenAPI với router, service, `acaj_ai`, repository, database và các nhánh lỗi. API chỉ ghi việc vào bảng `tasks`; worker lấy việc bằng `FOR UPDATE SKIP LOCKED` ([data model](../../06-data-model.md#task-table)).
 
 | # | Flow | Trigger | Use case |
 |---|---|---|---|
@@ -13,6 +13,7 @@ Bảy luồng chạy chính, mỗi luồng nối use case và thao tác OpenAPI 
 | 5 | Đọc thư phản hồi | Việc `POLL_INBOX` theo lịch | UC20 |
 | 6 | Xác nhận và gửi thư trả lời | `POST /applications/{id}/reply-draft/confirmation` | UC20 |
 | 7 | Hoàn tác một câu đã tối ưu | `PATCH /tailored-cvs/{id}/sentences/{sid}` | UC15, UC23 |
+| 8 | Cào và lấy dữ liệu job từ thị trường | Việc `COLLECT_JOBS` theo lịch, rồi `ANALYZE_JD` | UC11, UC12 |
 
 ## 1. Upload CV and AI extraction
 
@@ -259,3 +260,103 @@ sequenceDiagram
     end
     W-->>U: Câu hiện lại bản gốc, tỉ lệ hoàn tác hiện ở màn Chất lượng AI
 ```
+
+## 8. Collect job postings from the market
+
+Hai giai đoạn tách nhau: **thu thập** (không gọi LLM, chỉ lấy và chuẩn hóa dữ liệu thô) và **phân tích JD** (gọi `acaj_ai`). LLM lỗi thì job vẫn được lưu, chỉ chưa có yêu cầu đã phân tích (BR-012).
+
+```mermaid
+flowchart LR
+    SCH(["schedule.py<br/>COLLECT_JOBS"]) --> SRC["Mỗi nguồn đang bật<br/>(job_sources.enabled)"]
+    SRC --> FETCH["Collector lấy danh sách<br/>và trang chi tiết"]
+    FETCH --> NORM["Chuẩn hóa<br/>URL · công ty · địa điểm · lương · cấp độ"]
+    NORM --> UPSERT["UPSERT job_postings<br/>UNIQUE (source_id, external_id)"]
+    UPSERT --> AN["ANALYZE_JD<br/>yêu cầu + nhận định có trích dẫn, embedding"]
+    AN --> NEXT["SCORE_MATCHES<br/>COMPUTE_MARKET"]
+    UPSERT --> EXP["Đánh dấu EXPIRED<br/>job hết hạn / không còn truy cập"]
+```
+
+### 8.1 Collect (`COLLECT_JOBS`)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant K as Worker (schedule)
+    participant JS as JobSourceService
+    participant C as JobSourceCollector (topcv / linkedin / company_site)
+    participant SITE as Trang nguồn job
+    participant JI as JobIngestService
+    participant DB as PostgreSQL
+
+    K->>DB: claim COLLECT_JOBS
+    K->>JS: collect_all()
+    JS->>DB: job_sources WHERE enabled = true (BR-005)
+    loop Mỗi nguồn (lỗi một nguồn không dừng nguồn khác)
+        JS->>C: collect(source, since = last_collected_at)
+        C->>SITE: đọc robots.txt, chỉ đi đường dẫn được phép
+        loop Mỗi trang danh sách, giới hạn requests_per_minute
+            C->>SITE: GET trang danh sách
+            SITE-->>C: external_id, url, title, posted_at
+            C->>SITE: GET trang chi tiết (chỉ tin mới hoặc đã đổi)
+            SITE-->>C: HTML chi tiết
+            C-->>JS: RawPosting (văn bản thô, không tin cậy, BR-013)
+        end
+        alt Nguồn lỗi (timeout, 429, đổi cấu trúc HTML)
+            C-->>JS: SourceError
+            JS->>DB: ghi lỗi vào tasks, giữ nguyên last_collected_at
+        else Thành công
+            JS->>JI: ingest(source, raw_postings)
+            loop Mỗi tin
+                JI->>JI: chuẩn hóa URL, tách lương, map địa điểm, work_mode, seniority, apply_channel
+                JI->>DB: UPSERT companies theo tên
+                JI->>DB: UPSERT job_postings ON CONFLICT (source_id, external_id) (BR-003)
+                opt Tin mới hoặc description đã đổi
+                    JI->>DB: analysis_status = PENDING, INSERT tasks (ANALYZE_JD)
+                end
+            end
+            JI->>DB: tin quá expires_at hoặc trang trả 404/410 → status = EXPIRED (BR-004)
+            JS->>DB: job_sources.last_collected_at = now()
+        end
+    end
+    JS->>DB: INSERT tasks (COMPUTE_MARKET)
+```
+
+### 8.2 Analyze each JD (`ANALYZE_JD`)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant K as Worker (TaskRunner)
+    participant JA as JobAnalysisService
+    participant AI as acaj_ai.analyze_jd
+    participant LLM as LLM provider
+    participant DB as PostgreSQL
+
+    K->>DB: claim ANALYZE_JD (posting_id)
+    K->>JA: analyze(posting_id)
+    JA->>DB: job_postings.description, skill taxonomy
+    JA->>AI: analyze_jd(description, taxonomy)
+    AI->>LLM: prompt vN, JD trong khối dữ liệu (chỉ dẫn trong JD bị bỏ qua)
+    LLM-->>AI: JSON yêu cầu + nhận định + vị trí trích dẫn
+    AI->>AI: kiểm schema → loại mục không trỏ đúng đoạn JD (BR-009) → normalize_skills
+    alt Sai schema hoặc lỗi sau 3 lần
+        AI-->>JA: Result FAILED
+        JA->>DB: analysis_status = FAILED, ghi ai_calls
+    else Có kết quả
+        AI-->>JA: JdAnalysis
+        JA->>AI: embed(title + yêu cầu)
+        JA->>DB: thay job_requirements, jd_insights; embedding; analysis_status = READY; ai_calls
+        JA->>DB: INSERT tasks (SCORE_MATCHES) cho CV chính có bật tự động
+    end
+```
+
+| Quy tắc | Áp dụng ở bước | Rule |
+|---|---|---|
+| Chỉ nguồn được phép, tôn trọng robots và tần suất; Admin tắt nguồn có hiệu lực từ lần chạy sau | 8.1 bước 3–5 | BR-005 |
+| Không trùng job: `(source_id, external_id)` hoặc URL chuẩn hóa | 8.1 UPSERT | BR-003 |
+| Hết hạn hoặc không truy cập được → `EXPIRED`, không gợi ý, không nộp | 8.1 cuối vòng | BR-004 |
+| JD là văn bản không tin cậy, chỉ được đưa vào prompt như dữ liệu | 8.1, 8.2 | BR-013 |
+| Mọi yêu cầu và nhận định trỏ về đoạn JD làm căn cứ | 8.2 | BR-009 |
+| Con số thị trường tính bằng thống kê trên `job_postings` đã thu thập, không do LLM | `COMPUTE_MARKET` | BR-006 |
+
+Câu hỏi mở: điều khoản thu thập của TopCV/LinkedIn chưa chốt ([Q4](../../01-scope.md)). Nguồn nào chưa được phép thì để `enabled = false`.
