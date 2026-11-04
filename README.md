@@ -267,6 +267,16 @@ Screen ID, luồng tác vụ chính, hợp đồng trạng thái UI (kể cả t
 
 ### 2.3 Current UI prototype
 
+**Frontend đã port sang code** (`src/frontend/`): Next.js 16 + React 19 + TypeScript + Tailwind CSS v4, chạy bằng dữ liệu demo phía client (mất khi reload, chưa có backend). Đã có: landing, đăng nhập/đăng ký, và workspace gồm Tổng quan, Tự động ứng tuyển, CV, Phân tích thị trường, Việc làm (kèm tối ưu CV), Hồ sơ ứng tuyển, Tài khoản. Chưa có: các màn Admin, shadcn/ui, TanStack Query, API client. Quyết định: [ADR 0001](docs/decisions/0001-frontend-port-from-design-prototype.md).
+
+```bash
+cd src/frontend
+cp .env.example .env.local
+npm install
+npm run dev        # http://localhost:3000
+npm run typecheck
+```
+
 Prototype có thể bấm thử nằm trên canvas thiết kế: [ACAJ UI Prototype](https://claude.ai/artifact/Jk4AtZzuxHpgVd6RqKtTSo). Prototype gồm 12 màn chính, liên kết với nhau theo [screen inventory](docs/04-information-architecture.md#screen-inventory):
 
 | Màn | Nội dung |
@@ -282,6 +292,14 @@ Prototype có thể bấm thử nằm trên canvas thiết kế: [ACAJ UI Protot
 | `SCR-60` Nguồn job (Admin) | Bật/tắt nguồn, tần suất, kỹ năng chưa có trong phả hệ |
 | `SCR-61` Người dùng (Admin) | Tài khoản, mức dùng token, khóa/mở; không thấy nội dung CV |
 | `SCR-62` Chất lượng AI (Admin) | Chỉ số thật, hiệu chỉnh khả năng đậu phỏng vấn, trọng số, eval, chi phí |
+
+**Trang đầu (landing):** trang một màn hình, thông điệp "Nạp CV một lần", dẫn tới đăng ký.
+
+![Trang đầu](docs/images/landing.png)
+
+**CV gốc (`SCR-10`/`SCR-11`):** CV gốc không bị ghi đè; bên phải là những gì AI đọc được kèm độ tin cậy, chỗ chưa chắc được tô màu để kiểm tra.
+
+![Màn CV gốc](docs/images/cv.png)
 
 **Tự động ứng tuyển (`SCR-42`):** nạp CV một lần, quy trình 8 bước tự chạy; hệ thống chỉ hỏi bạn ở 3 chỗ.
 
@@ -1535,7 +1553,7 @@ Công thức, SQL, trường hợp biên và cách chỉnh: [Algorithms](docs/09
 - **Requirements catalogs:** [Business rules](docs/requirements/business-rules.md), [Non-functional requirements](docs/requirements/non-functional-requirements.md).
 - **Use cases and user stories:** [Actors, roles, and use cases](docs/03-use-cases.md), [INVEST backlog](docs/05-invest-requirements.md).
 - **Information architecture:** [Information architecture](docs/04-information-architecture.md).
-- **UI/UX:** [UI prototype](https://claude.ai/artifact/Jk4AtZzuxHpgVd6RqKtTSo), ảnh màn hình trong `docs/images/`.
+- **UI/UX:** [UI prototype](https://claude.ai/artifact/Jk4AtZzuxHpgVd6RqKtTSo), ảnh màn hình trong `docs/images/`, [ADR 0001 — port UI sang Next.js](docs/decisions/0001-frontend-port-from-design-prototype.md).
 - **Database:** [Data model](docs/06-data-model.md), [acaj.dbml](docs/database/acaj.dbml), [checks.sql](docs/database/checks.sql).
 - **API contract:** [OpenAPI 3.0](docs/api/openapi.yaml), [API documentation](docs/api/README.md).
 - **Architecture:** [C4 model](docs/architecture/c4/README.md), [AI pipeline and data for AI](docs/architecture/ai-pipeline.md), [AI package](docs/architecture/ai-package.md).
@@ -1563,4 +1581,6 @@ Công thức, SQL, trường hợp biên và cách chỉnh: [Algorithms](docs/09
 - [x] Design the AI package in detail (prompts, validators, evals)
 - [x] Design the frontend and backend folder structure
 - [x] Design class diagrams and sequence diagrams
+- [x] Port the Candidate UI to Next.js + Tailwind CSS v4 (demo data, no backend yet)
+- [ ] Build the Admin screens in the frontend
 - [ ] Build the backend and connect the frontend to the API

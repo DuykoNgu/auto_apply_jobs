@@ -1,6 +1,6 @@
 # Target folder structure
 
-> Design status: TARGET · Agreed structure, no application code yet
+> Design status: TARGET · Agreed structure. `src/frontend/` đã có code cho các màn Candidate (dữ liệu demo trong `lib/demo/`, style Tailwind CSS v4 trong `app/theme.css`, hai root layout `(public)`/`(workspace)`); backend, `src/ai/` và Admin chưa có. Lệch so với target xem [ADR 0001](decisions/0001-frontend-port-from-design-prototype.md).
 
 Frontend: **Next.js (App Router) + React + TypeScript**. Backend: **Python + FastAPI**, chia theo **module**; Backend API và Automation Worker dùng chung một codebase. Phần gọi LLM, OCR và kiểm chứng đầu ra nằm trong package riêng **`acaj_ai`** (`src/ai/`), không chạm database. Ranh giới các khối theo [C4 Container](architecture/c4/02-container.md).
 
