@@ -321,10 +321,6 @@ Prototype có thể bấm thử nằm trên canvas thiết kế: [ACAJ UI Protot
 
 ![Màn chi tiết hồ sơ ứng tuyển](docs/images/application.png)
 
-**Chất lượng AI (`SCR-62`, Admin):** chỉ số từ người dùng thật, khả năng đậu phỏng vấn so với kết quả phỏng vấn thật, trọng số matching, kết quả eval, chi phí.
-
-![Màn chất lượng AI](docs/images/admin-ai-quality.png)
-
 Ngôn ngữ thiết kế: chữ Be Vietnam Pro cho giao diện, Noto Serif cho tờ CV; màu nhấn xanh thông `#0F5C4D`; màu hổ phách chỉ dành cho nội dung AI suy ra hoặc cần xem lại. Nội dung đặt phẳng trên nền, chỉ tờ CV có khung giấy. Prototype đang ở chế độ riêng tư, cần chia sẻ từ menu Share để người khác mở được.
 
 ## 3. Database Diagrams (DBML / ER)
