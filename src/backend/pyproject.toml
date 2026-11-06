@@ -7,8 +7,12 @@ select = ["E", "F", "I", "N", "UP", "B", "SIM", "ANN"]
 
 [tool.mypy]
 strict = true
+mypy_path = ".:../ai"
+explicit_package_bases = true
 plugins = ["pydantic.mypy"]
 files = ["host", "shared", "modules", "tests"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "--import-mode=importlib"
