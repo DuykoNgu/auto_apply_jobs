@@ -1122,53 +1122,104 @@ src/frontend/
 
 ### 6.3 Target FastAPI modular structure
 
+Ba lớp: `host/` (khởi chạy, ráp module), `shared/` (hạ tầng dùng chung), `modules/` (nghiệp vụ, mỗi module tự chứa router, service, repository, models, schemas).
+
 ```text
 src/backend/
-├── app/
-│   ├── main.py                   # FastAPI app (Backend API)
-│   ├── worker.py                 # Automation Worker entry: scheduler + task loop
-│   ├── api_router.py             # Mounts every module router under /api/v1
-│   ├── core/
-│   │   ├── config.py             # pydantic-settings
-│   │   ├── database.py           # SQLAlchemy engine, session
-│   │   ├── security.py           # Password hashing, JWT
-│   │   ├── crypto.py             # Encrypts mailbox tokens (NFR-SEC-006)
-│   │   ├── storage.py            # Object storage client, signed links
-│   │   ├── container.py          # Binds interfaces to implementations (DI)
-│   │   ├── deps.py               # current_user, require_role, ownership helpers (BR-001)
-│   │   └── errors.py             # problem+json mapping
-│   ├── modules/
-│   │   └── <module>/
-│   │       ├── router.py         # Endpoints of this module (API only)
-│   │       ├── service.py        # Business logic; depends on repository interfaces
-│   │       ├── repository.py     # Protocol + SQLAlchemy implementation
-│   │       ├── models.py         # SQLAlchemy models
-│   │       ├── schemas.py        # Pydantic request/response, match openapi.yaml
-│   │       └── tasks.py          # Worker handlers for this module's task types (if any)
-│   ├── integrations/
-│   │   ├── sources/              # One collector per job source: topcv.py, linkedin.py, company_site.py
-│   │   ├── submit/               # Form submission (Playwright) and email submission
-│   │   └── mail/                 # Gmail and Outlook clients over OAuth
-│   └── tasks/
-│       ├── runner.py             # Claims tasks with FOR UPDATE SKIP LOCKED, retries, quotas
-│       └── schedule.py           # Periodic tasks: COLLECT_JOBS, COMPUTE_MARKET, POLL_INBOX, SEND_FOLLOW_UP
+├── host/                              # Composition root: ráp module, không chứa nghiệp vụ
+│   ├── main.py                        # FastAPI app (Backend API)
+│   ├── worker.py                      # Automation Worker entry: scheduler + task loop
+│   ├── api_router.py                  # Mounts every module router under /api/v1
+│   ├── container.py                   # DI: Protocol → implementation (repository, LLMClient, MailClient, collectors)
+│   ├── task_registry.py               # Registers task type → handler of each module
+│   └── schedule.py                    # Periodic: COLLECT_JOBS, COMPUTE_MARKET, POLL_INBOX, SEND_FOLLOW_UP
+├── shared/                            # Dùng chung, không import module nào
+│   ├── config.py                      # pydantic-settings
+│   ├── database.py                    # SQLAlchemy engine, session, Base
+│   ├── security.py                    # Password hashing (Argon2), JWT
+│   ├── crypto.py                      # Encrypts mailbox tokens (NFR-SEC-006)
+│   ├── storage.py                     # Object storage client, signed links
+│   ├── deps.py                        # current_user, require_role, ownership helpers (BR-001)
+│   ├── errors.py                      # Base exceptions + problem+json mapping
+│   ├── pagination.py                  # Shared page/cursor params
+│   └── tasks/                         # Queue infrastructure (not a business module)
+│       ├── models.py                  # tasks, ai_calls
+│       ├── repository.py              # Claims with FOR UPDATE SKIP LOCKED
+│       ├── runner.py                  # Task loop, retries, quotas
+│       ├── queries.py                 # Read-only ai_calls statistics for admin
+│       └── enqueue.py                 # enqueue(task_type, payload): any module may call
+├── modules/
+│   ├── auth/                          # Register, login, JWT (uses app_users of account)
+│   │   └── router.py  service.py  schemas.py
+│   ├── account/                       # app_users, mailbox_connections
+│   │   ├── router.py  service.py  repository.py  models.py  schemas.py
+│   │   ├── tasks.py                   # PURGE_USER
+│   │   └── integrations/mail_oauth.py # Gmail/Outlook OAuth: get and refresh tokens
+│   ├── cv/                            # cvs, cv_facts, cv_fact_skills, attachments
+│   │   ├── router.py  service.py  repository.py  models.py  schemas.py
+│   │   ├── tasks.py                   # PARSE_CV
+│   │   └── export.py                  # PDF export
+│   ├── taxonomy/                      # skills, aliases, relations, inferences, courses, locations, industries
+│   │   ├── router.py  service.py  repository.py  models.py  schemas.py
+│   │   └── tasks.py                   # Recompute skill_inferences
+│   ├── jobs/                          # job_sources, companies, job_postings, job_requirements, jd_insights
+│   │   ├── router.py  service.py  repository.py  models.py  schemas.py
+│   │   ├── tasks.py                   # COLLECT_JOBS, ANALYZE_JD
+│   │   └── integrations/sources/      # base.py (JobSourceCollector), topcv.py, linkedin.py, company_site.py
+│   ├── market/                        # market_snapshots + 4 child tables
+│   │   ├── router.py  service.py  repository.py  models.py  schemas.py
+│   │   └── tasks.py                   # COMPUTE_MARKET
+│   ├── matching/                      # matches, system_settings (weights)
+│   │   ├── router.py  service.py  repository.py  models.py  schemas.py
+│   │   ├── scoring.py                 # Rule-based score, no LLM
+│   │   └── tasks.py                   # SCORE_MATCHES
+│   ├── tailoring/                     # tailored_cvs, tailored_sentences, sentence_evidence, tailored_attachments
+│   │   ├── router.py  service.py  repository.py  models.py  schemas.py
+│   │   └── tasks.py                   # OPTIMIZE_CV (calls acaj_ai)
+│   ├── applications/                  # applications, mail_messages, reply_drafts, application_outcomes
+│   │   ├── router.py  service.py  repository.py  models.py  schemas.py
+│   │   ├── tasks.py                   # SUBMIT_APPLICATION, SEND_FOLLOW_UP, POLL_INBOX, SEND_REPLY
+│   │   └── integrations/
+│   │       ├── submit/                # form.py (Playwright), email.py
+│   │       └── mail/                  # base.py (MailClient), gmail.py, outlook.py
+│   ├── automation/                    # automation_settings, automation_excluded_companies
+│   │   ├── router.py  service.py  repository.py  models.py  schemas.py
+│   │   └── tasks.py                   # Orchestrates the automatic steps
+│   ├── feedback/                      # ai_feedback
+│   │   └── router.py  service.py  repository.py  models.py  schemas.py
+│   ├── notifications/                 # notifications
+│   │   └── router.py  service.py  repository.py  models.py  schemas.py
+│   ├── audit/                         # audit_logs; no router, written via audit.service.record()
+│   │   └── service.py  repository.py  models.py  schemas.py
+│   ├── dashboard/                     # No tables; aggregates through other modules' services
+│   │   └── router.py  service.py  schemas.py
+│   └── admin/                         # No tables; reads through other modules' services
+│       └── router.py  service.py  schemas.py
 ├── tests/
-│   ├── fakes/                    # In-memory repositories, stub LLM, fake mail and sources
-│   └── modules/
-├── alembic/                      # Migrations; the first one comes from docs/database (DBML → SQL + checks.sql)
+│   ├── fakes/                         # In-memory repositories, stub LLM, fake mail and sources
+│   ├── architecture/test_boundaries.py# Runs import-linter; fails on dependency violations
+│   ├── modules/<module>/              # Service tests with fakes
+│   └── api/                           # Router smoke tests against openapi.yaml
+├── alembic/                           # Migrations; the first one comes from docs/database (DBML → SQL + checks.sql)
+├── .importlinter                      # Contracts: host → modules → shared; modules import only other modules' service
 ├── .env.example
 ├── requirements.txt
-├── requirements-dev.txt          # + pytest, ruff, mypy
-└── Dockerfile                    # One image, run as `api` or `worker`
+├── requirements-dev.txt               # + pytest, ruff, mypy, import-linter
+└── Dockerfile                         # One image, run as `api` or `worker`
 ```
 
 ```text
-api_router → module/router → module/service → module/repository (interface) → PostgreSQL
-worker     → tasks/runner  → module/tasks   → module/service → acaj_ai / integrations / repository
-acaj_ai    → LLMClient (interface) → provider client → LLM provider
+host ──► modules ──► shared
+              └────► acaj_ai (only via a module's tasks.py, inside the worker)
 ```
 
-Module gọi nhau chỉ qua service. Điểm khớp được tính trước khi `acaj_ai` chạy, và chỉ `applications.service` gửi thư trả lời đã được xác nhận.
+```text
+api_router   → module/router → module/service → module/repository (interface) → PostgreSQL
+worker       → shared/tasks/runner → module/tasks → module/service → acaj_ai / module/integrations / repository
+acaj_ai      → LLMClient (interface) → provider client → LLM provider
+```
+
+Module gọi nhau chỉ qua service; `shared` không import module. Điểm khớp được tính trước khi `acaj_ai` chạy, và chỉ `applications.service` gửi thư trả lời đã được xác nhận.
 
 ### 6.4 AI package `acaj_ai`
 

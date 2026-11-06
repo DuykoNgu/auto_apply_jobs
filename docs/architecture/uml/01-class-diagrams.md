@@ -2,7 +2,7 @@
 
 > **Status:** Target design · Python classes inside the FastAPI modules and `acaj_ai`
 
-Ba sơ đồ dưới đây phủ ba phần quan trọng nhất: **Matching**, **Tối ưu CV cho từng job**, và **Tự động ứng tuyển và thư phản hồi**. Repository và client bên ngoài là interface (`Protocol`); implementation được gắn ở `core/container.py`, test thay bằng bản giả ([folder structure](../../07-folder-structure.md#rules)).
+Ba sơ đồ dưới đây phủ ba phần quan trọng nhất: **Matching**, **Tối ưu CV cho từng job**, và **Tự động ứng tuyển và thư phản hồi**. Repository và client bên ngoài là interface (`Protocol`); implementation được gắn ở `host/container.py`, test thay bằng bản giả ([folder structure](../../07-folder-structure.md#rules)).
 
 ## 1. Matching
 

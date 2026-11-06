@@ -238,7 +238,7 @@ flowchart TB
 
 ## Dependency Flow
 
-- **Backend API:** HTTP API → thành phần tính năng → Persistence → PostgreSQL. Thành phần tính năng không gọi lẫn nhau, chỉ đi qua Persistence; việc cần chạy nền thì ghi vào job table qua Job Requests.
+- **Backend API:** HTTP API → thành phần tính năng → Persistence → PostgreSQL. Thành phần tính năng (module) gọi nhau chỉ qua service của module sở hữu dữ liệu, không đọc repository hay bảng của nhau; việc cần chạy nền thì ghi vào job table qua Job Requests.
 - **Automation Worker:** Job Runner → CV Reader / Job Collector → JD Analyzer Runner → Match Scorer → CV Optimizer → Application Sender → Follow-up Scheduler / Inbox Watcher → Persistence.
 - Match Scorer chạy xong và lưu điểm trước khi CV Optimizer gọi LLM, nên điểm khớp không phụ thuộc LLM (BR-012).
 - Application Sender chỉ nộp khi bản CV của job ở trạng thái `READY` và job thỏa điều kiện người dùng (BR-019). LLM lỗi thì job đó không được nộp, các job khác vẫn chạy.
