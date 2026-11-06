@@ -5,7 +5,7 @@ These rules apply to every coding task in this repository. They take precedence 
 ## 1. Work one feature at a time
 
 - Build one feature at a time, as the user requests. Check the existing code before writing anything new.
-- Only touch the frontend feature, backend modules, and `cic_ai` modules the current feature needs. If anything else must change, ask the user first.
+- Only touch the frontend feature, backend modules, and `acaj_ai` modules the current feature needs. If anything else must change, ask the user first.
 - Shared code (`src/frontend/components/`, `src/frontend/lib/`, `src/backend/app/core/`) is added only when the current feature needs it.
 
 ## 2. Use the matching skills
@@ -31,11 +31,11 @@ Frontend (Next.js 16 + React 19 + TypeScript):
 - Keep pages light: Server Components by default, `"use client"` only where interaction needs it, heavy client parts (charts) loaded with `next/dynamic`.
 - TypeScript clean code: `strict` mode, no `any`, small components, logic in `hooks/`, API calls only in `api.ts`; checked with `npm run lint`, `npm run typecheck`, `npm run format:check`, `npm test`.
 
-AI package (`src/ai`, `cic_ai`):
+AI package (`src/ai`, `acaj_ai`):
 
-- Keep the boundary: no imports from `src/backend`, no database, no web server; only `cic_ai.llm` calls the LLM, and only with masked text.
+- Keep the boundary: no imports from `src/backend`, no database, no web server; only `acaj_ai.llm` calls the LLM, and only with masked text.
 - Use the `claude-api` skill before writing or changing any Anthropic SDK call.
-- Every behavior change comes with dataset cases and passes `cic-ai eval all` in stub mode; checked with `ruff`, `mypy --strict`, `pytest`.
+- Every behavior change comes with dataset cases and passes `acaj-ai eval` in stub mode; checked with `ruff`, `mypy --strict`, `pytest`.
 - `--live` evals cost money: run them only after the user approves, and report the printed cost.
 
 Before every commit: `simplify`, then `code-review`.
@@ -43,7 +43,7 @@ Before every commit: `simplify`, then `code-review`.
 ## 3. Stay within the limits
 
 - Implement only what the user asked for. Do not add extra features.
-- Keep module boundaries clear: other modules are used only through their service, services depend on interfaces, and the `cic_ai` boundary stays intact.
+- Keep module boundaries clear: other modules are used only through their service, services depend on interfaces, and the `acaj_ai` boundary stays intact.
 - Do not add libraries, endpoints, tables, columns, screens, or settings the user did not ask for without asking first.
 - Do not refactor code outside the current feature.
 
@@ -55,7 +55,7 @@ Before every commit: `simplify`, then `code-review`.
 
 ## 5. Test and verify quality
 
-- Write tests together with the code. Backend: `pytest` in `src/backend/tests/` (`modules/<module>/`, fakes from `tests/fakes/`). AI package: `pytest` in `src/ai/tests/` plus `cic-ai eval`. Frontend: tests in `src/frontend/tests/`.
+- Write tests together with the code. Backend: `pytest` in `src/backend/tests/` (`modules/<module>/`, fakes from `tests/fakes/`). AI package: `pytest` in `src/ai/tests/` plus `acaj-ai eval`. Frontend: tests in `src/frontend/tests/`.
 - Cover the happy path, validation errors, 401, 403, conflicts, and the empty/loading/error states from the UI/UX state contract.
 - Before reporting a feature as done, run and pass: format, lint, type check, and all tests for both sides. Report failures as they are; never skip, disable, or weaken a test to get green.
 
