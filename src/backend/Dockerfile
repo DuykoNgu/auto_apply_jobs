@@ -5,6 +5,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY host ./host
 COPY shared ./shared
 COPY modules ./modules
+COPY migrations ./migrations
+COPY alembic.ini ./
 RUN useradd --system app
 USER app
 EXPOSE 8000
