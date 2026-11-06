@@ -1061,7 +1061,7 @@ auto_apply_jobs/
 │   ├── database/                 # acaj.dbml + checks.sql
 │   ├── requirements/             # Business rules, non-functional requirements
 │   ├── images/                   # UI screenshots used in the README
-│   ├── 01-scope.md … 08-acceptance-criteria.md
+│   ├── 01-scope.md … 10-cost-estimate.md
 │   └── mindmap.png
 ├── docker-compose.yml            # postgres (pgvector), minio (object storage), api, worker, frontend
 ├── .gitignore                    # Ignores .env files, keeps .env.example
@@ -1607,6 +1607,8 @@ Công thức, SQL, trường hợp biên và cách chỉnh: [Algorithms](docs/09
 - **Detailed design:** [Algorithms](docs/09-algorithms.md), [C4 Level 4](docs/architecture/c4/04-code.md), [Class diagrams](docs/architecture/uml/01-class-diagrams.md), [Sequence diagrams](docs/architecture/uml/02-sequence-diagrams.md).
 
 - **Folder structure:** [Next.js, FastAPI modules, acaj_ai](docs/07-folder-structure.md).
+
+- **Deployment cost:** [Cost estimate — AWS EC2 và OpenAI (MVP)](docs/10-cost-estimate.md).
 
 ## Project Progress
 

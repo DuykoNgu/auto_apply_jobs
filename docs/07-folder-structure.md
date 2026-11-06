@@ -18,7 +18,7 @@ auto_apply_jobs/
 │   ├── database/                 # acaj.dbml + checks.sql
 │   ├── requirements/             # Business rules, non-functional requirements
 │   ├── images/                   # UI screenshots used in the README
-│   ├── 01-scope.md … 08-acceptance-criteria.md
+│   ├── 01-scope.md … 10-cost-estimate.md
 │   └── mindmap.png
 ├── docker-compose.yml            # postgres (pgvector), minio (object storage), api, worker, frontend
 ├── .gitignore                    # Ignores .env files, keeps .env.example
