@@ -10,6 +10,11 @@ logger = logging.getLogger(__name__)
 PROBLEM_JSON = "application/problem+json"
 
 
+class AppError(Exception):
+    status_code = 500
+    title = "Internal server error"
+
+
 def problem(status: int, title: str, errors: list[dict[str, str]] | None = None) -> JSONResponse:
     body: dict[str, object] = {"title": title, "status": status, "traceId": uuid4().hex}
     if errors:
@@ -25,6 +30,10 @@ def register_error_handlers(app: FastAPI) -> None:
             for err in exc.errors()
         ]
         return problem(422, "Validation failed", errors)
+
+    @app.exception_handler(AppError)
+    async def app_error(_: Request, exc: AppError) -> JSONResponse:
+        return problem(exc.status_code, exc.title)
 
     @app.exception_handler(Exception)
     async def unexpected(_: Request, exc: Exception) -> JSONResponse:
