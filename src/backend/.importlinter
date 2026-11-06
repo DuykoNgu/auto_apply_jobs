@@ -1,0 +1,13 @@
+[importlinter]
+root_packages =
+    host
+    shared
+    modules
+
+[importlinter:contract:layers]
+name = host -> modules -> shared
+type = layers
+layers =
+    host
+    modules
+    shared

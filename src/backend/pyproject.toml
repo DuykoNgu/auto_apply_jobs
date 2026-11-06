@@ -1,0 +1,14 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "ANN"]
+
+[tool.mypy]
+strict = true
+plugins = ["pydantic.mypy"]
+files = ["host", "shared", "modules", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
